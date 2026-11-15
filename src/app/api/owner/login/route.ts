@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
 import {
   hashPassword,
   verifyPassword,
@@ -19,25 +18,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Ensure platform owner exists (bootstrap)
+    // Lazy import so missing Prisma client gives a clear message
+    let prisma: any;
+    try {
+      const mod = await import("@/lib/db");
+      prisma = mod.prisma;
+    } catch (e: any) {
+      console.error("Prisma import failed:", e);
+      return NextResponse.json(
+        { error: "Database client not ready. Run: npm install && npx prisma db push && npx prisma generate" },
+        { status: 500 }
+      );
+    }
+
+    const ownerUsername = process.env.NEXORA_OWNER_USERNAME || "owner";
+    const ownerPassword = process.env.NEXORA_OWNER_PASSWORD || "Shellybr@123";
+
     let owner = await prisma.platformOwner.findUnique({
-      where: { username: process.env.NEXORA_OWNER_USERNAME || "owner" },
+      where: { username: ownerUsername },
     });
 
     if (!owner) {
-      // First run: create the owner with the configured password
-      const passwordHash = await hashPassword(
-        process.env.NEXORA_OWNER_PASSWORD || "Shellybr@123"
-      );
+      const passwordHash = await hashPassword(ownerPassword);
       owner = await prisma.platformOwner.create({
         data: {
-          username: process.env.NEXORA_OWNER_USERNAME || "owner",
+          username: ownerUsername,
           passwordHash,
         },
       });
     }
 
-    // Verify credentials
     if (username !== owner.username) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
@@ -56,10 +66,18 @@ export async function POST(req: NextRequest) {
     await setSessionCookie(token);
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Owner login error:", error);
+    const msg = error?.message || "Internal server error";
+    // Surface common Prisma / DB errors clearly
+    if (msg.includes("Can't reach database") || msg.includes("P1001") || msg.includes("does not exist")) {
+      return NextResponse.json(
+        { error: "Database not ready. Run: npx prisma db push && npx prisma generate" },
+        { status: 500 }
+      );
+    }
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: msg.includes("prisma") ? "Database error — run prisma generate & db push" : "Internal server error" },
       { status: 500 }
     );
   }

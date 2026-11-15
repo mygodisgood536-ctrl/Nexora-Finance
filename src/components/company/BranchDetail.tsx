@@ -107,8 +107,8 @@ export function BranchDetail({ branch, workers }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
+    <div className="min-h-screen bg-[#05050a]">
+      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-[#05050a]/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-4">
           <button
             onClick={() => router.push("/company")}

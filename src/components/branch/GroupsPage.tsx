@@ -46,8 +46,8 @@ export function GroupsPage({ groups }: { groups: Group[] }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
+    <div className="min-h-screen bg-[#05050a]">
+      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-[#05050a]/80 backdrop-blur-xl">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center gap-4">
           <button onClick={() => router.push("/branch")} className="p-2 rounded-lg hover:bg-slate-800 text-slate-400">
             <ArrowLeft className="w-5 h-5" />

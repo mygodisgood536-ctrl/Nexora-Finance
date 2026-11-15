@@ -54,8 +54,8 @@ export function BMDashboard({ base, coMetrics }: Props) {
   if (mode === "co") {
     // Switch to CO mode for BM's own portfolio
     return (
-      <div className="min-h-screen bg-slate-950">
-        <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
+      <div className="min-h-screen bg-[#05050a]">
+        <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-[#05050a]/80 backdrop-blur-xl">
           <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="text-sm font-medium text-white">{base.name}</span>
@@ -95,8 +95,8 @@ export function BMDashboard({ base, coMetrics }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
+    <div className="min-h-screen bg-[#05050a]">
+      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-[#05050a]/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div>
             <h1 className="text-lg font-semibold text-white">{base.branchName}</h1>
