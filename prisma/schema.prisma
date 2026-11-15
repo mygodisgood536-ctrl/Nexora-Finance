@@ -1,0 +1,486 @@
+// Nexora Microfinance - Authoritative Data Model (Vision v1.3)
+// Strict isolation by company_id + branch_id
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // Will switch to PostgreSQL / Neon later
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// PLATFORM OWNER (Infrastructure Owner)
+// ============================================================
+model PlatformOwner {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ============================================================
+// COMPANY
+// ============================================================
+model Company {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  gmail           String
+  address         String
+  status          String   @default("ACTIVE") // ACTIVE | SUSPENDED | DEACTIVATED
+  passwordHash    String
+  tempPassword    String?  // cleared after first login
+  mustChangePassword Boolean @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  branches        Branch[]
+  workers         Worker[]
+  customers       Customer[]
+  groups          Group[]
+  providerConnections ProviderConnection[]
+  loans           Loan[]
+}
+
+// ============================================================
+// BRANCH
+// ============================================================
+model Branch {
+  id        String   @id @default(cuid())
+  companyId String
+  name      String
+  slug      String
+  address   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  workers   Worker[]
+  customers Customer[]
+  groups    Group[]
+  providerConnections ProviderConnection[]
+  loans     Loan[]
+
+  @@unique([companyId, slug])
+  @@index([companyId])
+}
+
+// ============================================================
+// WORKER ACCOUNT (stable seat)
+// ============================================================
+model Worker {
+  id                      String   @id @default(cuid())
+  companyId               String
+  branchId                String
+  role                    String   // BM | CO
+  accountStatus           String   @default("ACTIVE") // ACTIVE | SUSPENDED | DEACTIVATED
+  currentWorkerIdentityId String?
+  passwordHash            String
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  company                 Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branch                  Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  identities              WorkerIdentity[]
+  ownedGroups             Group[]  @relation("CurrentOwner")
+  createdGroups           Group[]  @relation("OriginalCreator")
+  ownedCustomers          Customer[] @relation("CurrentOwner")
+  createdCustomers        Customer[] @relation("OriginalCreator")
+  ownedLoans              Loan[]   @relation("CurrentOwner")
+  applications            LoanApplication[]
+
+  @@index([companyId, branchId])
+  @@index([companyId])
+}
+
+// ============================================================
+// WORKER IDENTITY (the actual person)
+// ============================================================
+model WorkerIdentity {
+  id                   String   @id @default(cuid())
+  workerId             String
+  name                 String
+  phone                String
+  passportReference    String?
+  validFrom            DateTime @default(now())
+  validUntil           DateTime?
+  replacedByIdentityId String?
+  identityStatus       String   @default("ACTIVE") // ACTIVE | REPLACED
+  createdAt            DateTime @default(now())
+
+  worker               Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  replacedBy           WorkerIdentity? @relation("IdentityReplacement", fields: [replacedByIdentityId], references: [id])
+  previousIdentities   WorkerIdentity[] @relation("IdentityReplacement")
+
+  membershipsAdded     CustomerGroupMembership[]
+  applicationsCreated  LoanApplication[] @relation("CreatedBy")
+  applicationsSubmitted LoanApplication[] @relation("SubmittedBy")
+  applicationsConfirmed LoanApplication[] @relation("ConfirmedBy")
+  allocations          PaymentAllocation[]
+  receiptsRecorded     PaymentReceipt[]
+
+  @@index([workerId])
+}
+
+// ============================================================
+// GROUP
+// ============================================================
+model Group {
+  id                        String   @id @default(cuid())
+  companyId                 String
+  branchId                  String
+  name                      String
+  number                    String?
+  address                   String?
+  dateCreated               DateTime @default(now())
+  currentOwnerWorkerId      String
+  originalCreatedByWorkerId String
+  status                    String   @default("ACTIVE")
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  company                   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branch                    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  currentOwner              Worker   @relation("CurrentOwner", fields: [currentOwnerWorkerId], references: [id])
+  originalCreator           Worker   @relation("OriginalCreator", fields: [originalCreatedByWorkerId], references: [id])
+  memberships               CustomerGroupMembership[]
+  applications              LoanApplication[]
+
+  @@index([companyId, branchId])
+  @@index([currentOwnerWorkerId])
+}
+
+// ============================================================
+// CUSTOMER
+// ============================================================
+model Customer {
+  id                        String   @id @default(cuid())
+  companyId                 String
+  branchId                  String
+  // Personal info
+  fullName                  String
+  fatherHusband             String?
+  maritalStatus             String?  // Single | Married | Divorced | Widowed
+  dateOfBirth               DateTime?
+  gender                    String?
+  address                   String?
+  phone                     String?
+  // Financial profile (filled during loan application)
+  nextOfKinName             String?
+  nextOfKinRelationship     String?
+  nextOfKinPhone            String?
+  occupation                String?
+  houseAddress              String?
+  street                    String?
+  directionToHouse          String?
+  childName                 String?
+  localKnownAs              String?
+  shopAddress               String?
+  averageDailyIncome        Float?
+  averageMonthlyIncome      Float?
+  identificationType        String?
+  bvn                       String?
+  nin                       String?
+  bankAccount               String?
+  // Ownership
+  currentOwnerWorkerId      String
+  originalCreatedByWorkerId String
+  savingsBalance            Float    @default(0)
+  customerStatus            String   @default("ACTIVE") // ACTIVE | CLOSED | REOPENED
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  company                   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branch                    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  currentOwner              Worker   @relation("CurrentOwner", fields: [currentOwnerWorkerId], references: [id])
+  originalCreator           Worker   @relation("OriginalCreator", fields: [originalCreatedByWorkerId], references: [id])
+  memberships               CustomerGroupMembership[]
+  applications              LoanApplication[]
+  loans                     Loan[]
+  receipts                  PaymentReceipt[]
+  allocations               PaymentAllocation[]
+  savingsLedger             SavingsLedger[]
+
+  @@index([companyId, branchId])
+  @@index([currentOwnerWorkerId])
+  @@index([phone])
+}
+
+// ============================================================
+// CUSTOMER GROUP MEMBERSHIP
+// ============================================================
+model CustomerGroupMembership {
+  id                       String   @id @default(cuid())
+  customerId               String
+  groupId                  String
+  addedByWorkerIdentityId  String
+  groupRole                String   // LEADER | SECRETARY | TREASURER | CHIEF_WHIP | MEMBER
+  joinedAt                 DateTime @default(now())
+  leftAt                   DateTime?
+  membershipStatus         String   @default("ACTIVE") // ACTIVE | LEFT
+
+  customer                 Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  group                    Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  addedBy                  WorkerIdentity @relation(fields: [addedByWorkerIdentityId], references: [id])
+
+  @@index([customerId])
+  @@index([groupId])
+}
+
+// ============================================================
+// PROVIDER CONNECTION (one active per branch)
+// ============================================================
+model ProviderConnection {
+  id                 String   @id @default(cuid())
+  companyId          String
+  branchId           String
+  providerCode       String   // MONNIFY | PAYSTACK | FLUTTERWAVE
+  encryptedCredentials String // JSON encrypted
+  webhookUrl         String?
+  webhookSecret      String?
+  connectionStatus   String   @default("MANUAL_SETUP_REQUIRED") // CONNECTED | FAILED | MANUAL_SETUP_REQUIRED
+  lastHealthCheck    DateTime?
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  company            Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branch             Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  webhookEvents      WebhookEvent[]
+  receipts           PaymentReceipt[]
+
+  @@index([companyId, branchId])
+  @@index([branchId, isActive])
+}
+
+// ============================================================
+// WEBHOOK EVENT (idempotent)
+// ============================================================
+model WebhookEvent {
+  id                     String   @id @default(cuid())
+  providerConnectionId   String
+  providerTransactionRef String
+  payloadJson            String
+  receivedAt             DateTime @default(now())
+  processedAt            DateTime?
+
+  providerConnection     ProviderConnection @relation(fields: [providerConnectionId], references: [id], onDelete: Cascade)
+  receipt                PaymentReceipt?
+
+  @@unique([providerConnectionId, providerTransactionRef])
+  @@index([providerConnectionId])
+}
+
+// ============================================================
+// LOAN APPLICATION (12 stages)
+// ============================================================
+model LoanApplication {
+  id                          String   @id @default(cuid())
+  customerId                  String
+  groupId                     String?
+  currentOwnerWorkerId        String
+  createdByWorkerIdentityId   String
+  submittedByWorkerIdentityId String?
+  confirmedByWorkerIdentityId String?
+  stage                       Int      @default(1) // 1..12
+  appStatus                   String   @default("DRAFT") // DRAFT | SUBMITTED | AWAITING_DISBURSEMENT_CONFIRMATION | COMPLETED
+  // Captured data as JSON for flexibility during multi-stage
+  capturedData                String?  // JSON
+  repaymentMode               String?  // WEEKLY | DAILY
+  requestedAmount             Float?
+  interestPercentage          Float?
+  repaymentAmount             Float?
+  period                      Int?
+  repaymentWeekday            String?  // for weekly
+  loanPurpose                 String?
+  disbursementConfirmedAt     DateTime?
+  disbursementAmount          Float?
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  customer                    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  group                       Group?   @relation(fields: [groupId], references: [id])
+  currentOwner                Worker   @relation(fields: [currentOwnerWorkerId], references: [id])
+  createdBy                   WorkerIdentity @relation("CreatedBy", fields: [createdByWorkerIdentityId], references: [id])
+  submittedBy                 WorkerIdentity? @relation("SubmittedBy", fields: [submittedByWorkerIdentityId], references: [id])
+  confirmedBy                 WorkerIdentity? @relation("ConfirmedBy", fields: [confirmedByWorkerIdentityId], references: [id])
+  loan                        Loan?
+  faceCaptures                FaceCapture[]
+  evidenceCaptures            EvidenceCapture[]
+
+  @@index([customerId])
+  @@index([currentOwnerWorkerId])
+  @@index([appStatus])
+}
+
+// ============================================================
+// FACE / EVIDENCE CAPTURES
+// ============================================================
+model FaceCapture {
+  id                String   @id @default(cuid())
+  applicationId     String
+  type              String   // CUSTOMER | GUARANTOR
+  imagePath         String
+  meanBrightness    Float?
+  laplacianVariance Float?
+  faceConfidence    Float?
+  passiveLiveness   Float?
+  passed            Boolean  @default(false)
+  createdAt         DateTime @default(now())
+
+  application       LoanApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model EvidenceCapture {
+  id            String   @id @default(cuid())
+  applicationId String
+  type          String   // CUSTOMER_HOUSE | GUARANTOR_HOUSE | CUSTOMER_BUSINESS | GUARANTOR_BUSINESS | LOAN_FORM
+  imagePath     String
+  pageNumber    Int?     // for loan form pages
+  createdAt     DateTime @default(now())
+
+  application   LoanApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// LOAN
+// ============================================================
+model Loan {
+  id                    String   @id @default(cuid())
+  applicationId         String   @unique
+  customerId            String
+  companyId             String
+  branchId              String
+  currentOwnerWorkerId  String
+  loanStatus            String   @default("ACTIVE") // ACTIVE | COMPLETED
+  virtualAccountStatus  String   @default("PENDING") // PENDING | RETRYING | CREATED | FAILED
+  virtualAccountId      String?
+  virtualAccountNumber  String?
+  activatedAt           DateTime @default(now())
+  completedAt           DateTime?
+  outstandingBalance    Float
+  totalContractual      Float
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  application           LoanApplication @relation(fields: [applicationId], references: [id])
+  customer              Customer @relation(fields: [customerId], references: [id])
+  company               Company  @relation(fields: [companyId], references: [id])
+  branch                Branch   @relation(fields: [branchId], references: [id])
+  currentOwner          Worker   @relation("CurrentOwner", fields: [currentOwnerWorkerId], references: [id])
+  scheduleRows          RepaymentScheduleRow[]
+  receipts              PaymentReceipt[]
+  allocations           PaymentAllocation[]
+
+  @@index([companyId, branchId])
+  @@index([currentOwnerWorkerId])
+  @@index([loanStatus])
+}
+
+// ============================================================
+// REPAYMENT SCHEDULE (immutable after generation)
+// ============================================================
+model RepaymentScheduleRow {
+  id            String   @id @default(cuid())
+  loanId        String
+  dueDate       DateTime
+  principalDue  Float
+  interestDue   Float
+  totalDue      Float
+  status        String   @default("PENDING") // PENDING | SATISFIED (but schedule itself is immutable)
+  createdAt     DateTime @default(now())
+
+  loan          Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@index([loanId])
+  @@index([dueDate])
+}
+
+// ============================================================
+// PAYMENT RECEIPT
+// ============================================================
+model PaymentReceipt {
+  id                        String   @id @default(cuid())
+  webhookEventId            String?  @unique
+  paymentSource             String   // WEBHOOK | MANUAL_CASH
+  providerConnectionId      String?
+  providerTransactionRef    String?
+  customerId                String
+  loanId                    String?
+  verifiedAmount            Float
+  receivedAt                DateTime @default(now())
+  recordedByWorkerIdentityId String?
+  status                    String   @default("AWAITING_ALLOCATION") // AWAITING_ALLOCATION | POSTED | FAILED
+  createdAt                 DateTime @default(now())
+
+  webhookEvent              WebhookEvent? @relation(fields: [webhookEventId], references: [id])
+  providerConnection        ProviderConnection? @relation(fields: [providerConnectionId], references: [id])
+  customer                  Customer @relation(fields: [customerId], references: [id])
+  loan                      Loan?    @relation(fields: [loanId], references: [id])
+  recordedBy                WorkerIdentity? @relation(fields: [recordedByWorkerIdentityId], references: [id])
+  allocation                PaymentAllocation?
+
+  @@index([customerId])
+  @@index([status])
+}
+
+// ============================================================
+// PAYMENT ALLOCATION
+// ============================================================
+model PaymentAllocation {
+  id                          String   @id @default(cuid())
+  receiptId                   String   @unique
+  customerId                  String
+  loanId                      String?
+  loanAllocation              Float
+  savingsAllocation           Float
+  allocatedByWorkerIdentityId String
+  allocatedAt                 DateTime @default(now())
+  postedAt                    DateTime?
+  allocStatus                 String   @default("AWAITING_ALLOCATION") // AWAITING_ALLOCATION | POSTED | FAILED
+
+  receipt                     PaymentReceipt @relation(fields: [receiptId], references: [id])
+  customer                    Customer @relation(fields: [customerId], references: [id])
+  loan                        Loan?    @relation(fields: [loanId], references: [id])
+  allocatedBy                 WorkerIdentity @relation(fields: [allocatedByWorkerIdentityId], references: [id])
+  savingsLedgerEntry          SavingsLedger?
+
+  @@index([customerId])
+}
+
+// ============================================================
+// SAVINGS LEDGER
+// ============================================================
+model SavingsLedger {
+  id            String   @id @default(cuid())
+  customerId    String
+  allocationId  String   @unique
+  amount        Float
+  balanceAfter  Float
+  createdAt     DateTime @default(now())
+
+  customer      Customer @relation(fields: [customerId], references: [id])
+  allocation    PaymentAllocation @relation(fields: [allocationId], references: [id])
+
+  @@index([customerId])
+}
+
+// ============================================================
+// COMPANY HEALTH / OPERATIONAL WARNINGS
+// ============================================================
+model OperationalWarning {
+  id          String   @id @default(cuid())
+  companyId   String
+  branchId    String?
+  type        String   // PROVIDER_FAILED | WEBHOOK_FAILURE | VA_RETRYING | etc.
+  message     String
+  severity    String   @default("WARNING")
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  resolvedAt  DateTime?
+
+  @@index([companyId, resolved])
+}
