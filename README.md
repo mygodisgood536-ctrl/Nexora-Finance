@@ -54,3 +54,17 @@ For production database later, set `DATABASE_URL` to your Neon PostgreSQL connec
 
 ## Vision rules strictly followed
 No customer portal, no branch approval stage, no fees, no DEFAULTED status, savings as running balance only, original creator immutable, etc.
+
+## Current GitHub
+
+https://github.com/mygodisgood536-ctrl/Nexora-Finance
+
+After clone:
+
+```bash
+npm install
+npx prisma db push
+npm run dev
+```
+
+Platform Owner login: username `owner` / password `Shellybr@123`
