@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Loader2, Check, AlertTriangle } from "lucide-react";
 import { isTallyExact, calculateTotalContractual, formatNaira } from "@/lib/money";
 import { DisbursementConfirm } from "@/components/branch/DisbursementConfirm";
+import { FaceCapture } from "@/components/branch/FaceCapture";
 
 type Props = {
   application: {
@@ -312,15 +313,29 @@ export function LoanApplicationWizard({ application, customer }: Props) {
             </div>
           )}
 
-          {stage >= 4 && stage <= 10 && (
+          {stage === 4 && (
+            <FaceCapture
+              label="Customer Live Face Capture"
+              onCaptured={() => saveStage(5, { customerFace: true })}
+            />
+          )}
+
+          {stage === 5 && (
+            <FaceCapture
+              label="Guarantor Live Face Capture"
+              onCaptured={() => saveStage(6, { guarantorFace: true })}
+            />
+          )}
+
+          {stage >= 6 && stage <= 10 && (
             <div className="text-center py-8">
               <p className="text-slate-300 font-medium mb-2">{STAGES[stage - 1]}</p>
               <p className="text-sm text-slate-500 mb-6">
-                {stage <= 5
-                  ? "Live face capture with quality checks (brightness, clarity, confidence, liveness). Camera integration will be completed in the next iteration. You may continue."
-                  : "Optional evidence — zero or more captures allowed. You may skip or continue."}
+                Optional evidence — zero or more captures allowed by the vision. You may skip or continue.
               </p>
-              <p className="text-xs text-slate-600">Vision allows zero captures for house, business and form pages.</p>
+              <button onClick={() => saveStage(stage + 1, { skippedEvidence: true })} className="btn-primary">
+                Continue / Skip
+              </button>
             </div>
           )}
 

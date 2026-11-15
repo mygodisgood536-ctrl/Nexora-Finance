@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { generateSchedule } from "@/lib/schedule";
 import { calculateTotalContractual } from "@/lib/money";
+import { queueVirtualAccountProvisioning } from "@/lib/virtual-account";
 
 export async function POST(
   req: NextRequest,

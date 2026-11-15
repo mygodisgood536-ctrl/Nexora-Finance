@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { BMDashboard } from "@/components/branch/BMDashboard";
 import { CODashboard } from "@/components/branch/CODashboard";
+import { getCOMetrics, getTodayCollections } from "@/lib/metrics";
 
 export default async function BranchWorkplacePage() {
   const session = await getSession();
@@ -59,25 +60,21 @@ export default async function BranchWorkplacePage() {
       },
     });
 
-    // Simple metrics (will be expanded with real collection data later)
-    const coMetrics = branchWorkers.map((w) => ({
-      workerId: w.id,
-      name: w.identities[0]?.name || "CO",
-      totalCustomers: w._count.ownedCustomers,
-      activeLoans: w._count.ownedLoans,
-      // Placeholder zeros until payment allocation is fully wired
-      expectedCollection: 0,
-      realisedCollection: 0,
-      overdueAmount: 0,
-      overdueCount: 0,
-      repaymentRate: 0,
-      savingsCollected: 0,
-      pendingAllocations: 0,
-    }));
+    const coMetrics = await Promise.all(
+      branchWorkers.map(async (w) => {
+        const m = await getCOMetrics(w.id);
+        return {
+          workerId: w.id,
+          name: w.identities[0]?.name || "CO",
+          ...m,
+        };
+      })
+    );
 
     return <BMDashboard base={base} coMetrics={coMetrics} />;
   }
 
   // CO
-  return <CODashboard base={base} />;
+  const today = await getTodayCollections(session.workerId);
+  return <CODashboard base={base} today={today} />;
 }

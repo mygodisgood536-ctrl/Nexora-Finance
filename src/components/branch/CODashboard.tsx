@@ -25,9 +25,10 @@ type Props = {
     groupCount: number;
     loanCount: number;
   };
+  today?: { expected: number; realised: number };
 };
 
-export function CODashboard({ base }: Props) {
+export function CODashboard({ base, today }: Props) {
   const router = useRouter();
 
   async function handleLogout() {
@@ -56,10 +57,10 @@ export function CODashboard({ base }: Props) {
         {/* Stats row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
-            { label: "Expected Today", value: "₦0", icon: Clock, color: "text-sky-400" },
-            { label: "Realised Today", value: "₦0", icon: TrendingUp, color: "text-emerald-400" },
-            { label: "Outstanding", value: "₦0", icon: Wallet, color: "text-amber-400" },
-            { label: "Overdue", value: "₦0", icon: AlertCircle, color: "text-red-400" },
+            { label: "Expected Today", value: `₦${(today?.expected ?? 0).toLocaleString()}`, icon: Clock, color: "text-sky-400" },
+            { label: "Realised Today", value: `₦${(today?.realised ?? 0).toLocaleString()}`, icon: TrendingUp, color: "text-emerald-400" },
+            { label: "Outstanding", value: "—", icon: Wallet, color: "text-amber-400" },
+            { label: "Overdue", value: "—", icon: AlertCircle, color: "text-red-400" },
           ].map((s, i) => (
             <motion.div
               key={s.label}

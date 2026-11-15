@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { generateSchedule } from "@/lib/schedule";
 import { calculateTotalContractual } from "@/lib/money";
+import { queueVirtualAccountProvisioning } from "@/lib/virtual-account";
 
 /**
  * CO confirms external disbursement → loan becomes ACTIVE immediately.
@@ -95,6 +96,9 @@ export async function POST(req: NextRequest) {
     });
 
     // Virtual account provisioning would be queued here (async, non-blocking)
+
+    // Non-blocking
+    queueVirtualAccountProvisioning(result.id).catch(console.error);
 
     return NextResponse.json({
       success: true,
