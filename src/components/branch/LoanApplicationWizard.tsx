@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, Loader2, Check, AlertTriangle } from "lucide-rea
 import { isTallyExact, calculateTotalContractual, formatNaira } from "@/lib/money";
 import { DisbursementConfirm } from "@/components/branch/DisbursementConfirm";
 import { FaceCapture } from "@/components/branch/FaceCapture";
+import { EvidenceCapture } from "@/components/branch/EvidenceCapture";
 
 type Props = {
   application: {
@@ -327,16 +328,45 @@ export function LoanApplicationWizard({ application, customer }: Props) {
             />
           )}
 
-          {stage >= 6 && stage <= 10 && (
-            <div className="text-center py-8">
-              <p className="text-slate-300 font-medium mb-2">{STAGES[stage - 1]}</p>
-              <p className="text-sm text-slate-500 mb-6">
-                Optional evidence — zero or more captures allowed by the vision. You may skip or continue.
-              </p>
-              <button onClick={() => saveStage(stage + 1, { skippedEvidence: true })} className="btn-primary">
-                Continue / Skip
-              </button>
-            </div>
+          {stage === 6 && (
+            <EvidenceCapture
+              title="Customer House Evidence"
+              description="Optional. Capture zero or more photos of the customer house."
+              onSave={(c) => saveStage(7, { customerHouse: c.length })}
+              onSkip={() => saveStage(7, { skipped: true })}
+            />
+          )}
+          {stage === 7 && (
+            <EvidenceCapture
+              title="Guarantor House Evidence"
+              description="Optional. Capture zero or more photos of the guarantor house."
+              onSave={(c) => saveStage(8, { guarantorHouse: c.length })}
+              onSkip={() => saveStage(8, { skipped: true })}
+            />
+          )}
+          {stage === 8 && (
+            <EvidenceCapture
+              title="Customer Business Evidence"
+              description="Optional. Capture zero or more photos of the customer business/shop."
+              onSave={(c) => saveStage(9, { customerBusiness: c.length })}
+              onSkip={() => saveStage(9, { skipped: true })}
+            />
+          )}
+          {stage === 9 && (
+            <EvidenceCapture
+              title="Guarantor Business Evidence"
+              description="Optional. Capture zero or more photos of the guarantor business/shop."
+              onSave={(c) => saveStage(10, { guarantorBusiness: c.length })}
+              onSkip={() => saveStage(10, { skipped: true })}
+            />
+          )}
+          {stage === 10 && (
+            <EvidenceCapture
+              title="Loan Form Pages"
+              description="Optional. Capture each page of the loan form. Pages are saved individually."
+              onSave={(c) => saveStage(11, { formPages: c.length })}
+              onSkip={() => saveStage(11, { skipped: true })}
+            />
           )}
 
           {stage === 11 && (
