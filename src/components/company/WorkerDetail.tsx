@@ -95,14 +95,14 @@ export function WorkerDetail({ worker, identities, customers, groups, loans }: P
   }
 
   return (
-    <div className="min-h-screen bg-[#05050a]">
-      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-[#05050a]/80 backdrop-blur-xl">
+    <div className="min-h-screen bg-slate-50">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-slate-50/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-4">
-          <button onClick={() => router.push(`/company/branches/${worker.branchId}`)} className="p-2 rounded-lg hover:bg-slate-800 text-slate-400">
+          <button onClick={() => router.push(`/company/branches/${worker.branchId}`)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-lg font-semibold text-white">{worker.currentName}</h1>
+            <h1 className="text-lg font-semibold text-slate-900">{worker.currentName}</h1>
             <p className="text-xs text-slate-500">
               {worker.role === "BM" ? "Branch Manager" : "Collection Officer"} · {worker.branchName}
             </p>
@@ -119,12 +119,12 @@ export function WorkerDetail({ worker, identities, customers, groups, loans }: P
                 <User className="w-7 h-7 text-sky-400" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">{worker.currentName}</h2>
-                <p className="text-sm text-slate-400 flex items-center gap-1.5 mt-0.5">
+                <h2 className="text-xl font-bold text-slate-900">{worker.currentName}</h2>
+                <p className="text-sm text-slate-500 flex items-center gap-1.5 mt-0.5">
                   <Phone className="w-3.5 h-3.5" /> {worker.currentPhone}
                 </p>
                 <p className="text-xs text-slate-500 mt-1">
-                  Account status: <span className="text-slate-300">{worker.accountStatus}</span>
+                  Account status: <span className="text-slate-600">{worker.accountStatus}</span>
                 </p>
               </div>
             </div>
@@ -133,17 +133,17 @@ export function WorkerDetail({ worker, identities, customers, groups, loans }: P
             </button>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-800">
+          <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-200">
             <div className="text-center">
-              <p className="text-2xl font-bold text-white">{worker.customerCount}</p>
+              <p className="text-2xl font-bold text-slate-900">{worker.customerCount}</p>
               <p className="text-xs text-slate-500">Customers</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-white">{worker.groupCount}</p>
+              <p className="text-2xl font-bold text-slate-900">{worker.groupCount}</p>
               <p className="text-xs text-slate-500">Groups</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-white">{worker.loanCount}</p>
+              <p className="text-2xl font-bold text-slate-900">{worker.loanCount}</p>
               <p className="text-xs text-slate-500">Loans</p>
             </div>
           </div>
@@ -164,7 +164,7 @@ export function WorkerDetail({ worker, identities, customers, groups, loans }: P
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                 tab === t.id
                   ? "bg-sky-500/15 text-sky-300 border border-sky-500/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                  : "text-slate-500 hover:text-slate-200 hover:bg-slate-100/50"
               }`}
             >
               {t.label}
@@ -175,9 +175,9 @@ export function WorkerDetail({ worker, identities, customers, groups, loans }: P
         {/* Tab content */}
         {tab === "overview" && (
           <div className="card p-6">
-            <p className="text-slate-400 text-sm">
+            <p className="text-slate-500 text-sm">
               Full portfolio owned by this worker account. All customers, groups and loans currently under{" "}
-              <span className="text-white">{worker.currentName}</span>. Historical actions remain attributed to the
+              <span className="text-slate-900">{worker.currentName}</span>. Historical actions remain attributed to the
               identity that performed them.
             </p>
           </div>
@@ -191,10 +191,10 @@ export function WorkerDetail({ worker, identities, customers, groups, loans }: P
               customers.map((c) => (
                 <div key={c.id} className="card p-4 flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-white">{c.fullName}</p>
+                    <p className="font-medium text-slate-900">{c.fullName}</p>
                     <p className="text-xs text-slate-500">{c.phone} · Savings: ₦{c.savingsBalance.toLocaleString()}</p>
                   </div>
-                  <span className="text-xs text-slate-400">{c.status}</span>
+                  <span className="text-xs text-slate-500">{c.status}</span>
                 </div>
               ))
             )}
@@ -209,10 +209,10 @@ export function WorkerDetail({ worker, identities, customers, groups, loans }: P
               groups.map((g) => (
                 <div key={g.id} className="card p-4 flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-white">{g.name}</p>
+                    <p className="font-medium text-slate-900">{g.name}</p>
                     <p className="text-xs text-slate-500">#{g.number}</p>
                   </div>
-                  <span className="text-xs text-slate-400">{g.status}</span>
+                  <span className="text-xs text-slate-500">{g.status}</span>
                 </div>
               ))
             )}
@@ -227,12 +227,12 @@ export function WorkerDetail({ worker, identities, customers, groups, loans }: P
               loans.map((l) => (
                 <div key={l.id} className="card p-4 flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-white">{l.customerName}</p>
+                    <p className="font-medium text-slate-900">{l.customerName}</p>
                     <p className="text-xs text-slate-500">
                       Outstanding: ₦{l.outstanding.toLocaleString()} / ₦{l.total.toLocaleString()}
                     </p>
                   </div>
-                  <span className="text-xs text-slate-400">{l.status}</span>
+                  <span className="text-xs text-slate-500">{l.status}</span>
                 </div>
               ))
             )}
@@ -246,14 +246,14 @@ export function WorkerDetail({ worker, identities, customers, groups, loans }: P
                 <div className="flex items-center gap-3">
                   <History className="w-4 h-4 text-slate-500" />
                   <div>
-                    <p className="font-medium text-white">{i.name}</p>
+                    <p className="font-medium text-slate-900">{i.name}</p>
                     <p className="text-xs text-slate-500">
                       {i.phone} · From {new Date(i.validFrom).toLocaleDateString()}
                       {i.validUntil ? ` → ${new Date(i.validUntil).toLocaleDateString()}` : " (current)"}
                     </p>
                   </div>
                 </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${i.status === "ACTIVE" ? "bg-emerald-500/15 text-emerald-400" : "bg-slate-700 text-slate-400"}`}>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${i.status === "ACTIVE" ? "bg-emerald-500/15 text-emerald-400" : "bg-slate-700 text-slate-500"}`}>
                   {i.status}
                 </span>
               </div>
@@ -266,8 +266,8 @@ export function WorkerDetail({ worker, identities, customers, groups, loans }: P
       {showReplace && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => !replacing && setShowReplace(false)}>
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white mb-2">Replace Worker</h3>
-            <p className="text-sm text-slate-400 mb-5">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Replace Worker</h3>
+            <p className="text-sm text-slate-500 mb-5">
               The same worker account and portfolio will be transferred to a new person. Historical actions stay with the previous identity.
             </p>
             {newPassword ? (

@@ -5,13 +5,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  --bg: #05050a;
-  --card: rgba(18, 18, 28, 0.75);
-  --border: rgba(255, 255, 255, 0.08);
-  --accent: #38bdf8;
-  --accent2: #818cf8;
-  --text: #f8fafc;
-  --muted: #94a3b8;
+  --bg: #ffffff;
+  --bg-soft: #f8fafc;
+  --ink: #0a0a0a;
+  --ink-soft: #64748b;
+  --border: #e2e8f0;
+  --card: #ffffff;
+  --black: #0a0a0a;
 }
 
 * {
@@ -21,108 +21,75 @@
 
 html, body {
   background: var(--bg);
-  color: var(--text);
+  color: var(--ink);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   min-height: 100vh;
 }
 
-/* Smooth custom scrollbar */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
 @layer components {
-  /* Glass card - matching the smooth Flutter style */
-  .glass {
-    background: rgba(18, 18, 28, 0.72);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-  }
-
-  .glass-strong {
-    background: rgba(22, 22, 34, 0.88);
-    backdrop-filter: blur(32px);
-    -webkit-backdrop-filter: blur(32px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
   .card {
-    @apply rounded-3xl shadow-2xl shadow-black/40;
-    background: rgba(18, 18, 28, 0.78);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    @apply rounded-3xl bg-white border border-slate-200/80 shadow-sm;
   }
 
-  /* Primary button - soft gradient pill like the TikTok demos */
+  .card-elevated {
+    @apply rounded-3xl bg-white border border-slate-200/60 shadow-lg shadow-slate-200/50;
+  }
+
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-semibold text-white
-           transition-all duration-300 ease-out
-           active:scale-[0.97] disabled:opacity-45 disabled:pointer-events-none;
-    background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%);
-    box-shadow: 0 8px 24px -6px rgba(56, 189, 248, 0.45);
-  }
-  .btn-primary:hover {
-    box-shadow: 0 12px 32px -6px rgba(56, 189, 248, 0.55);
-    filter: brightness(1.08);
+           bg-black transition-all duration-300 ease-out
+           hover:bg-neutral-800 active:scale-[0.98]
+           disabled:opacity-40 disabled:pointer-events-none;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-medium text-slate-200
-           transition-all duration-300 ease-out active:scale-[0.97];
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-medium
+           bg-slate-100 text-slate-800 border border-slate-200
+           transition-all duration-300 ease-out hover:bg-slate-200 active:scale-[0.98];
   }
-  .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.16);
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-medium
+           text-slate-600 hover:bg-slate-100 transition-colors;
   }
 
   .input {
-    @apply w-full rounded-2xl px-4 py-3.5 text-sm text-white outline-none transition-all duration-300;
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-  }
-  .input::placeholder { color: #64748b; }
-  .input:focus {
-    border-color: rgba(56, 189, 248, 0.5);
-    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12);
+    @apply w-full rounded-2xl px-4 py-3.5 text-sm text-slate-900 outline-none transition-all duration-300
+           bg-slate-100 border border-transparent
+           placeholder:text-slate-400
+           focus:bg-white focus:border-slate-300 focus:ring-2 focus:ring-slate-200;
   }
 
   .label {
-    @apply block text-[13px] font-medium text-slate-400 mb-2 tracking-wide;
+    @apply block text-[13px] font-medium text-slate-500 mb-2;
+  }
+
+  .page-shell {
+    @apply min-h-screen bg-slate-50;
+  }
+
+  .page-header {
+    @apply sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl;
   }
 }
 
-/* Soft ambient background orbs (like the smooth Flutter demos) */
-.ambient {
-  position: fixed;
-  inset: 0;
+.curve-header {
+  position: relative;
+  background: #0a0a0a;
+  color: white;
   overflow: hidden;
-  pointer-events: none;
-  z-index: 0;
 }
-.ambient::before,
-.ambient::after {
+.curve-header::after {
   content: "";
   position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-  opacity: 0.35;
-}
-.ambient::before {
-  width: 420px;
-  height: 420px;
-  background: #38bdf8;
-  top: -120px;
-  left: -80px;
-}
-.ambient::after {
-  width: 380px;
-  height: 380px;
-  background: #6366f1;
-  bottom: -100px;
-  right: -60px;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 48px;
+  background: white;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
 }

@@ -46,13 +46,13 @@ export function GroupsPage({ groups }: { groups: Group[] }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#05050a]">
-      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-[#05050a]/80 backdrop-blur-xl">
+    <div className="min-h-screen bg-slate-50">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-slate-50/80 backdrop-blur-xl">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center gap-4">
-          <button onClick={() => router.push("/branch")} className="p-2 rounded-lg hover:bg-slate-800 text-slate-400">
+          <button onClick={() => router.push("/branch")} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-lg font-semibold text-white">Groups</h1>
+          <h1 className="text-lg font-semibold text-slate-900">Groups</h1>
           <div className="ml-auto">
             <button onClick={() => setShowCreate(true)} className="btn-primary text-sm">
               <Plus className="w-4 h-4" /> Create Group
@@ -65,8 +65,8 @@ export function GroupsPage({ groups }: { groups: Group[] }) {
         {groups.length === 0 ? (
           <div className="card p-16 text-center">
             <FolderOpen className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-white mb-2">No groups yet</h2>
-            <p className="text-sm text-slate-400 mb-6">Create your first group and start adding members.</p>
+            <h2 className="text-lg font-semibold text-slate-900 mb-2">No groups yet</h2>
+            <p className="text-sm text-slate-500 mb-6">Create your first group and start adding members.</p>
             <button onClick={() => setShowCreate(true)} className="btn-primary">
               <Plus className="w-4 h-4" /> Create Group
             </button>
@@ -79,20 +79,20 @@ export function GroupsPage({ groups }: { groups: Group[] }) {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
-                className="card p-5 hover:border-slate-700 transition-colors cursor-pointer"
+                className="card p-5 hover:border-slate-200 transition-colors cursor-pointer"
                 onClick={() => router.push(`/branch/groups/${g.id}`)}
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-semibold text-white">{g.name}</h3>
+                    <h3 className="font-semibold text-slate-900">{g.name}</h3>
                     {g.number && <p className="text-xs text-slate-500 mt-0.5">#{g.number}</p>}
                   </div>
-                  <span className="text-xs text-slate-400 flex items-center gap-1">
+                  <span className="text-xs text-slate-500 flex items-center gap-1">
                     <Users className="w-3.5 h-3.5" /> {g.memberCount}
                   </span>
                 </div>
                 {g.address && (
-                  <p className="text-sm text-slate-400 mt-3 flex items-center gap-1.5 truncate">
+                  <p className="text-sm text-slate-500 mt-3 flex items-center gap-1.5 truncate">
                     <MapPin className="w-3.5 h-3.5 shrink-0" /> {g.address}
                   </p>
                 )}
@@ -105,7 +105,7 @@ export function GroupsPage({ groups }: { groups: Group[] }) {
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => !creating && setShowCreate(false)}>
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white mb-5">Create Group</h3>
+            <h3 className="text-lg font-semibold text-slate-900 mb-5">Create Group</h3>
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <label className="label">Group Name</label>

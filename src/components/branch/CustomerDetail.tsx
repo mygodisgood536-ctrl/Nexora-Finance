@@ -60,14 +60,14 @@ export function CustomerDetail({ customer, groups, loans, applications }: Props)
   }
 
   return (
-    <div className="min-h-screen bg-[#05050a]">
-      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-[#05050a]/80 backdrop-blur-xl">
+    <div className="min-h-screen bg-slate-50">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-slate-50/80 backdrop-blur-xl">
         <div className="max-w-3xl mx-auto px-4 h-16 flex items-center gap-4">
-          <button onClick={() => router.back()} className="p-2 rounded-lg hover:bg-slate-800 text-slate-400">
+          <button onClick={() => router.back()} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-lg font-semibold text-white">{customer.fullName}</h1>
+            <h1 className="text-lg font-semibold text-slate-900">{customer.fullName}</h1>
             <p className="text-xs text-slate-500">{customer.phone}</p>
           </div>
         </div>
@@ -78,34 +78,34 @@ export function CustomerDetail({ customer, groups, loans, applications }: Props)
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <p className="text-slate-500 text-xs">Gender</p>
-              <p className="text-white">{customer.gender || "—"}</p>
+              <p className="text-slate-900">{customer.gender || "—"}</p>
             </div>
             <div>
               <p className="text-slate-500 text-xs">Marital Status</p>
-              <p className="text-white">{customer.maritalStatus || "—"}</p>
+              <p className="text-slate-900">{customer.maritalStatus || "—"}</p>
             </div>
             <div className="col-span-2">
               <p className="text-slate-500 text-xs">Address</p>
-              <p className="text-white">{customer.address || "—"}</p>
+              <p className="text-slate-900">{customer.address || "—"}</p>
             </div>
             <div>
               <p className="text-slate-500 text-xs">Savings Balance</p>
-              <p className="text-white font-medium">₦{customer.savingsBalance.toLocaleString()}</p>
+              <p className="text-slate-900 font-medium">₦{customer.savingsBalance.toLocaleString()}</p>
             </div>
             <div>
               <p className="text-slate-500 text-xs">Status</p>
-              <p className="text-white">{customer.status}</p>
+              <p className="text-slate-900">{customer.status}</p>
             </div>
           </div>
         </div>
 
         {groups.length > 0 && (
           <div className="card p-5">
-            <h3 className="font-medium text-white mb-3">Groups</h3>
+            <h3 className="font-medium text-slate-900 mb-3">Groups</h3>
             <div className="space-y-2">
               {groups.map((g) => (
                 <div key={g.id} className="flex justify-between text-sm">
-                  <span className="text-slate-300">{g.name}</span>
+                  <span className="text-slate-600">{g.name}</span>
                   <span className="text-slate-500">{g.role}</span>
                 </div>
               ))}
@@ -115,12 +115,12 @@ export function CustomerDetail({ customer, groups, loans, applications }: Props)
 
         {loans.length > 0 && (
           <div className="card p-5">
-            <h3 className="font-medium text-white mb-3">Loan History</h3>
+            <h3 className="font-medium text-slate-900 mb-3">Loan History</h3>
             <div className="space-y-2">
               {loans.map((l) => (
                 <div key={l.id} className="flex justify-between text-sm">
-                  <span className="text-slate-300">{l.status}</span>
-                  <span className="text-slate-400">₦{l.outstanding.toLocaleString()} / ₦{l.total.toLocaleString()}</span>
+                  <span className="text-slate-600">{l.status}</span>
+                  <span className="text-slate-500">₦{l.outstanding.toLocaleString()} / ₦{l.total.toLocaleString()}</span>
                 </div>
               ))}
             </div>
@@ -129,15 +129,15 @@ export function CustomerDetail({ customer, groups, loans, applications }: Props)
 
         {applications.length > 0 && (
           <div className="card p-5">
-            <h3 className="font-medium text-white mb-3">Open Applications</h3>
+            <h3 className="font-medium text-slate-900 mb-3">Open Applications</h3>
             <div className="space-y-2">
               {applications.map((a) => (
                 <button
                   key={a.id}
                   onClick={() => router.push(`/branch/applications/${a.id}`)}
-                  className="w-full flex justify-between text-sm p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800 transition-colors"
+                  className="w-full flex justify-between text-sm p-3 rounded-xl bg-slate-100 hover:bg-slate-100 transition-colors"
                 >
-                  <span className="text-slate-300">Stage {a.stage} · {a.status}</span>
+                  <span className="text-slate-600">Stage {a.stage} · {a.status}</span>
                   <span className="text-sky-400">Continue →</span>
                 </button>
               ))}
@@ -146,7 +146,7 @@ export function CustomerDetail({ customer, groups, loans, applications }: Props)
         )}
 
         <div className="card p-6">
-          <h3 className="font-medium text-white mb-3">New Loan Application</h3>
+          <h3 className="font-medium text-slate-900 mb-3">New Loan Application</h3>
           {customer.hasActiveLoan ? (
             <div className="flex items-center gap-2 text-amber-400 text-sm">
               <AlertTriangle className="w-4 h-4" />

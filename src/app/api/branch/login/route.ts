@@ -9,7 +9,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "All fields required" }, { status: 400 });
     }
 
-    const company = await prisma.company.findUnique({ where: { slug: companySlug.trim().toLowerCase() } });
+    const company = await prisma.company.findUnique({
+      where: { slug: companySlug.trim().toLowerCase() },
+    });
     if (!company || company.status !== "ACTIVE") {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
@@ -21,7 +23,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
-    // Find worker by current active identity phone
     const identity = await prisma.workerIdentity.findFirst({
       where: {
         phone: phone.trim(),
@@ -44,7 +45,11 @@ export async function POST(req: NextRequest) {
       sub: identity.worker.id,
       role: identity.worker.role as "BM" | "CO",
       companyId: company.id,
+      companyName: company.name,
+      companySlug: company.slug,
       branchId: branch.id,
+      branchName: branch.name,
+      branchSlug: branch.slug,
       workerId: identity.worker.id,
       identityId: identity.id,
       name: identity.name,
@@ -52,8 +57,12 @@ export async function POST(req: NextRequest) {
 
     await setSessionCookie(token);
 
-    return NextResponse.json({ success: true, role: identity.worker.role });
-  } catch (error) {
+    return NextResponse.json({
+      success: true,
+      role: identity.worker.role,
+      companyName: company.name,
+    });
+  } catch (error: any) {
     console.error("Branch login error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

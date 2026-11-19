@@ -40,6 +40,7 @@ export default async function BranchWorkplacePage() {
     branchName: worker.branch.name,
     branchId: worker.branch.id,
     companyId: worker.companyId,
+    companyName: session.companyName || undefined,
     customerCount: worker._count.ownedCustomers,
     groupCount: worker._count.ownedGroups,
     loanCount: worker._count.ownedLoans,

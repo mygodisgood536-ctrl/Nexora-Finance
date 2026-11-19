@@ -6,11 +6,23 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.NEXORA_JWT_SECRET || "fallback-secret-change-me"
 );
 
+/**
+ * Session carries branding context so each environment
+ * can render the correct identity without hardcoding names.
+ *
+ * PLATFORM_OWNER → no company branding
+ * COMPANY        → companyName only
+ * BM / CO        → companyName + role label
+ */
 export type SessionPayload = {
   sub: string;
   role: "PLATFORM_OWNER" | "COMPANY" | "BM" | "CO";
   companyId?: string;
+  companyName?: string;
+  companySlug?: string;
   branchId?: string;
+  branchName?: string;
+  branchSlug?: string;
   workerId?: string;
   identityId?: string;
   name?: string;
@@ -63,7 +75,7 @@ export async function setSessionCookie(token: string) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: 60 * 60 * 24 * 7,
   });
 }
 

@@ -76,14 +76,14 @@ export function GroupDetail({ group, members }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-[#05050a]">
-      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-[#05050a]/80 backdrop-blur-xl">
+    <div className="min-h-screen bg-slate-50">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-slate-50/80 backdrop-blur-xl">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center gap-4">
-          <button onClick={() => router.push("/branch/groups")} className="p-2 rounded-lg hover:bg-slate-800 text-slate-400">
+          <button onClick={() => router.push("/branch/groups")} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-lg font-semibold text-white">{group.name}</h1>
+            <h1 className="text-lg font-semibold text-slate-900">{group.name}</h1>
             {group.number && <p className="text-xs text-slate-500">#{group.number}</p>}
           </div>
           <div className="ml-auto">
@@ -97,16 +97,16 @@ export function GroupDetail({ group, members }: Props) {
       <main className="max-w-5xl mx-auto px-4 py-8">
         <div className="card p-5 mb-6 flex items-center justify-between">
           <div>
-            <p className="text-sm text-slate-400">Members</p>
-            <p className="text-2xl font-bold text-white">{members.length}</p>
+            <p className="text-sm text-slate-500">Members</p>
+            <p className="text-2xl font-bold text-slate-900">{members.length}</p>
           </div>
-          {group.address && <p className="text-sm text-slate-400 max-w-xs text-right">{group.address}</p>}
+          {group.address && <p className="text-sm text-slate-500 max-w-xs text-right">{group.address}</p>}
         </div>
 
         {members.length === 0 ? (
           <div className="card p-12 text-center">
             <Users className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-            <h3 className="font-medium text-slate-300 mb-1">No members yet</h3>
+            <h3 className="font-medium text-slate-600 mb-1">No members yet</h3>
             <p className="text-sm text-slate-500 mb-5">Add the first member to this group.</p>
             <button onClick={() => setShowAdd(true)} className="btn-primary">
               <UserPlus className="w-4 h-4" /> Add Member
@@ -115,9 +115,9 @@ export function GroupDetail({ group, members }: Props) {
         ) : (
           <div className="space-y-2">
             {members.map((m) => (
-              <div key={m.membershipId} className="card p-4 flex items-center justify-between hover:border-slate-700 transition-colors">
+              <div key={m.membershipId} className="card p-4 flex items-center justify-between hover:border-slate-200 transition-colors">
                 <div>
-                  <p className="font-medium text-white">{m.fullName}</p>
+                  <p className="font-medium text-slate-900">{m.fullName}</p>
                   <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
                     <Phone className="w-3 h-3" /> {m.phone} · {m.groupRole}
                   </p>
@@ -137,7 +137,7 @@ export function GroupDetail({ group, members }: Props) {
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm overflow-y-auto" onClick={() => !adding && setShowAdd(false)}>
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card w-full max-w-lg p-6 my-8" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white mb-5">Add Member</h3>
+            <h3 className="text-lg font-semibold text-slate-900 mb-5">Add Member</h3>
             <form onSubmit={handleAdd} className="space-y-3">
               <div>
                 <label className="label">Full Name</label>

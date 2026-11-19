@@ -107,17 +107,17 @@ export function BranchDetail({ branch, workers }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-[#05050a]">
-      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-[#05050a]/80 backdrop-blur-xl">
+    <div className="min-h-screen bg-slate-50">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-slate-50/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-4">
           <button
             onClick={() => router.push("/company")}
-            className="p-2 rounded-lg hover:bg-slate-800 text-slate-400"
+            className="p-2 rounded-lg hover:bg-slate-100 text-slate-500"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-lg font-semibold text-white">{branch.name}</h1>
+            <h1 className="text-lg font-semibold text-slate-900">{branch.name}</h1>
             <p className="text-xs text-slate-500">
               {branch.slug}.{branch.companySlug}.nexora.app
             </p>
@@ -130,8 +130,8 @@ export function BranchDetail({ branch, workers }: Props) {
         <div className="card p-6 mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-bold text-white">{branch.name}</h2>
-              <p className="text-sm text-slate-400 mt-1 flex items-center gap-1.5">
+              <h2 className="text-xl font-bold text-slate-900">{branch.name}</h2>
+              <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5" />
                 {branch.address}
               </p>
@@ -139,15 +139,15 @@ export function BranchDetail({ branch, workers }: Props) {
             <div className="flex gap-6 text-sm">
               <div>
                 <p className="text-slate-500 text-xs">Customers</p>
-                <p className="text-lg font-semibold text-white">{branch.customerCount}</p>
+                <p className="text-lg font-semibold text-slate-900">{branch.customerCount}</p>
               </div>
               <div>
                 <p className="text-slate-500 text-xs">Groups</p>
-                <p className="text-lg font-semibold text-white">{branch.groupCount}</p>
+                <p className="text-lg font-semibold text-slate-900">{branch.groupCount}</p>
               </div>
               <div>
                 <p className="text-slate-500 text-xs">Loans</p>
-                <p className="text-lg font-semibold text-white">{branch.loanCount}</p>
+                <p className="text-lg font-semibold text-slate-900">{branch.loanCount}</p>
               </div>
             </div>
           </div>
@@ -155,7 +155,7 @@ export function BranchDetail({ branch, workers }: Props) {
 
         {/* Workers */}
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-bold text-white">Workers</h2>
+          <h2 className="text-xl font-bold text-slate-900">Workers</h2>
           <button onClick={() => { setShowCreate(true); setCreatedPassword(null); }} className="btn-primary text-sm">
             <UserPlus className="w-4 h-4" />
             Create Worker
@@ -165,7 +165,7 @@ export function BranchDetail({ branch, workers }: Props) {
         {workers.length === 0 ? (
           <div className="card p-12 text-center">
             <Users className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-            <h3 className="font-medium text-slate-300 mb-1">No workers yet</h3>
+            <h3 className="font-medium text-slate-600 mb-1">No workers yet</h3>
             <p className="text-sm text-slate-500 mb-5">Create a Branch Manager or Collection Officer.</p>
             <button onClick={() => setShowCreate(true)} className="btn-primary">
               <UserPlus className="w-4 h-4" /> Create Worker
@@ -179,7 +179,7 @@ export function BranchDetail({ branch, workers }: Props) {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
-                className="card p-5 hover:border-slate-700 transition-colors"
+                className="card p-5 hover:border-slate-200 transition-colors"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
@@ -187,7 +187,7 @@ export function BranchDetail({ branch, workers }: Props) {
                       <User className="w-5 h-5 text-sky-400" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-white">{w.name}</h3>
+                      <h3 className="font-semibold text-slate-900">{w.name}</h3>
                       <p className="text-xs text-slate-500">{w.role === "BM" ? "Branch Manager" : "Collection Officer"}</p>
                     </div>
                   </div>
@@ -195,7 +195,7 @@ export function BranchDetail({ branch, workers }: Props) {
                     {w.accountStatus}
                   </span>
                 </div>
-                <p className="text-sm text-slate-400 flex items-center gap-1.5 mb-3">
+                <p className="text-sm text-slate-500 flex items-center gap-1.5 mb-3">
                   <Phone className="w-3.5 h-3.5" /> {w.phone}
                 </p>
                 <div className="flex gap-3 text-xs text-slate-500 mb-4">
@@ -205,7 +205,7 @@ export function BranchDetail({ branch, workers }: Props) {
                   <span>·</span>
                   <span>{w.loanCount} loans</span>
                 </div>
-                <div className="flex gap-2 pt-3 border-t border-slate-800/80">
+                <div className="flex gap-2 pt-3 border-t border-slate-200/80">
                   {w.accountStatus === "ACTIVE" && (
                     <>
                       <button
@@ -235,7 +235,7 @@ export function BranchDetail({ branch, workers }: Props) {
                   )}
                   <button
                     onClick={() => router.push(`/company/workers/${w.id}`)}
-                    className="flex-1 text-xs py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700"
+                    className="flex-1 text-xs py-1.5 rounded-lg bg-slate-800 text-slate-600 hover:bg-slate-700"
                   >
                     View Full
                   </button>
@@ -250,7 +250,7 @@ export function BranchDetail({ branch, workers }: Props) {
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => !creating && setShowCreate(false)}>
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white mb-5">
+            <h3 className="text-lg font-semibold text-slate-900 mb-5">
               {createdPassword ? "Worker Created" : "Create Worker"}
             </h3>
             {createdPassword ? (

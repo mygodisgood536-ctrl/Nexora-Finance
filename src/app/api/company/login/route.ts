@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
     if (!slug?.trim() || !password) {
       return NextResponse.json(
-        { error: "Company slug and password are required" },
+        { error: "Workspace ID and password are required" },
         { status: 400 }
       );
     }
@@ -28,14 +28,14 @@ export async function POST(req: NextRequest) {
 
     if (company.status === "DEACTIVATED") {
       return NextResponse.json(
-        { error: "This company has been deactivated" },
+        { error: "This workspace has been deactivated" },
         { status: 403 }
       );
     }
 
     if (company.status === "SUSPENDED") {
       return NextResponse.json(
-        { error: "This company is currently suspended" },
+        { error: "This workspace is currently suspended" },
         { status: 403 }
       );
     }
@@ -49,6 +49,8 @@ export async function POST(req: NextRequest) {
       sub: company.id,
       role: "COMPANY",
       companyId: company.id,
+      companyName: company.name,
+      companySlug: company.slug,
       name: company.name,
     });
 
@@ -59,11 +61,15 @@ export async function POST(req: NextRequest) {
       mustChangePassword: company.mustChangePassword,
       companyName: company.name,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Company login error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    const msg = error?.message || "";
+    if (msg.includes("prisma") || msg.includes("database") || msg.includes("Can't reach")) {
+      return NextResponse.json(
+        { error: "Database not ready. Run prisma generate & db push." },
+        { status: 500 }
+      );
+    }
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

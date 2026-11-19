@@ -66,13 +66,13 @@ export function PaymentsPage({ receipts }: { receipts: Receipt[] }) {
     Math.abs(Number(loanAlloc) + Number(savingsAlloc) - active.amount) < 0.015;
 
   return (
-    <div className="min-h-screen bg-[#05050a]">
-      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-[#05050a]/80 backdrop-blur-xl">
+    <div className="min-h-screen bg-slate-50">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-slate-50/80 backdrop-blur-xl">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center gap-4">
-          <button onClick={() => router.push("/branch")} className="p-2 rounded-lg hover:bg-slate-800 text-slate-400">
+          <button onClick={() => router.push("/branch")} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-lg font-semibold text-white">Payments Awaiting Allocation</h1>
+          <h1 className="text-lg font-semibold text-slate-900">Payments Awaiting Allocation</h1>
         </div>
       </header>
 
@@ -80,8 +80,8 @@ export function PaymentsPage({ receipts }: { receipts: Receipt[] }) {
         {receipts.length === 0 ? (
           <div className="card p-16 text-center">
             <Wallet className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-white mb-2">No pending payments</h2>
-            <p className="text-sm text-slate-400">Verified payments will appear here for allocation.</p>
+            <h2 className="text-lg font-semibold text-slate-900 mb-2">No pending payments</h2>
+            <p className="text-sm text-slate-500">Verified payments will appear here for allocation.</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -94,7 +94,7 @@ export function PaymentsPage({ receipts }: { receipts: Receipt[] }) {
                 className="card p-4 flex items-center justify-between"
               >
                 <div>
-                  <p className="font-medium text-white">{r.customer.name}</p>
+                  <p className="font-medium text-slate-900">{r.customer.name}</p>
                   <p className="text-xs text-slate-500 mt-0.5">
                     {r.source} · {formatNaira(r.amount)} · {new Date(r.receivedAt).toLocaleString()}
                   </p>
@@ -111,8 +111,8 @@ export function PaymentsPage({ receipts }: { receipts: Receipt[] }) {
       {active && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => !posting && setActive(null)}>
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white mb-1">Allocate Payment</h3>
-            <p className="text-sm text-slate-400 mb-5">{active.customer.name} · {formatNaira(active.amount)}</p>
+            <h3 className="text-lg font-semibold text-slate-900 mb-1">Allocate Payment</h3>
+            <p className="text-sm text-slate-500 mb-5">{active.customer.name} · {formatNaira(active.amount)}</p>
 
             {active.loan && (
               <p className="text-xs text-slate-500 mb-3">

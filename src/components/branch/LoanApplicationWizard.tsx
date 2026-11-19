@@ -60,14 +60,14 @@ export function LoanApplicationWizard({ application, customer }: Props) {
 
   if (application.status === "AWAITING_DISBURSEMENT_CONFIRMATION") {
     return (
-      <div className="min-h-screen bg-[#05050a]">
-        <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-[#05050a]/80 backdrop-blur-xl">
+      <div className="min-h-screen bg-slate-50">
+        <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-slate-50/80 backdrop-blur-xl">
           <div className="max-w-2xl mx-auto px-4 h-16 flex items-center gap-4">
-            <button onClick={() => router.back()} className="p-2 rounded-lg hover:bg-slate-800 text-slate-400">
+            <button onClick={() => router.back()} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500">
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-lg font-semibold text-white">Confirm Disbursement</h1>
+              <h1 className="text-lg font-semibold text-slate-900">Confirm Disbursement</h1>
               <p className="text-xs text-slate-500">{customer.fullName}</p>
             </div>
           </div>
@@ -217,14 +217,14 @@ export function LoanApplicationWizard({ application, customer }: Props) {
     : null;
 
   return (
-    <div className="min-h-screen bg-[#05050a]">
-      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-[#05050a]/80 backdrop-blur-xl">
+    <div className="min-h-screen bg-slate-50">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-slate-50/80 backdrop-blur-xl">
         <div className="max-w-2xl mx-auto px-4 h-16 flex items-center gap-4">
-          <button onClick={() => router.back()} className="p-2 rounded-lg hover:bg-slate-800 text-slate-400">
+          <button onClick={() => router.back()} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-semibold text-white truncate">Loan Application</h1>
+            <h1 className="text-lg font-semibold text-slate-900 truncate">Loan Application</h1>
             <p className="text-xs text-slate-500">{customer.fullName} · Stage {stage} of 12</p>
           </div>
         </div>
@@ -246,7 +246,7 @@ export function LoanApplicationWizard({ application, customer }: Props) {
                 <label className="label">Repayment Mode</label>
                 <div className="flex gap-3">
                   {["WEEKLY", "DAILY"].map((m) => (
-                    <button key={m} type="button" onClick={() => setMode(m)} className={`flex-1 py-3 rounded-xl border text-sm font-medium transition-colors ${mode === m ? "border-sky-500/50 bg-sky-500/10 text-sky-300" : "border-slate-700 text-slate-400"}`}>
+                    <button key={m} type="button" onClick={() => setMode(m)} className={`flex-1 py-3 rounded-xl border text-sm font-medium transition-colors ${mode === m ? "border-sky-500/50 bg-sky-500/10 text-sky-300" : "border-slate-200 text-slate-500"}`}>
                       {m}
                     </button>
                   ))}
@@ -265,7 +265,7 @@ export function LoanApplicationWizard({ application, customer }: Props) {
 
           {stage === 2 && (
             <div className="space-y-4">
-              <p className="text-sm text-slate-400 mb-2">Additional information (reuses existing profile data where available)</p>
+              <p className="text-sm text-slate-500 mb-2">Additional information (reuses existing profile data where available)</p>
               <div>
                 <label className="label">Next of Kin Name</label>
                 <input value={nextOfKinName} onChange={(e) => setNextOfKinName(e.target.value)} className="input" />
@@ -398,10 +398,10 @@ export function LoanApplicationWizard({ application, customer }: Props) {
                 </div>
               )}
               {principal > 0 && interest > 0 && (
-                <div className="rounded-xl bg-slate-900/80 border border-slate-700 p-4 text-sm space-y-1">
-                  <p className="text-slate-400">Principal: <span className="text-white">{formatNaira(principal)}</span></p>
-                  <p className="text-slate-400">Interest: <span className="text-white">{formatNaira(calculateTotalContractual(principal, interest) - principal)}</span></p>
-                  <p className="text-slate-400">Total Contractual: <span className="text-white font-medium">{formatNaira(total)}</span></p>
+                <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 text-sm space-y-1">
+                  <p className="text-slate-500">Principal: <span className="text-slate-900">{formatNaira(principal)}</span></p>
+                  <p className="text-slate-500">Interest: <span className="text-slate-900">{formatNaira(calculateTotalContractual(principal, interest) - principal)}</span></p>
+                  <p className="text-slate-500">Total Contractual: <span className="text-slate-900 font-medium">{formatNaira(total)}</span></p>
                   {tallyOk !== null && (
                     <p className={tallyOk ? "text-emerald-400 flex items-center gap-1.5 mt-2" : "text-red-400 flex items-center gap-1.5 mt-2"}>
                       {tallyOk ? <Check className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
@@ -415,13 +415,13 @@ export function LoanApplicationWizard({ application, customer }: Props) {
 
           {stage === 12 && (
             <div className="space-y-3 text-sm">
-              <h3 className="font-medium text-white text-base mb-3">Final Preview</h3>
-              <div className="flex justify-between"><span className="text-slate-400">Customer</span><span className="text-white">{customer.fullName}</span></div>
-              <div className="flex justify-between"><span className="text-slate-400">Mode</span><span className="text-white">{mode}</span></div>
-              <div className="flex justify-between"><span className="text-slate-400">Amount</span><span className="text-white">{formatNaira(principal)}</span></div>
-              <div className="flex justify-between"><span className="text-slate-400">Interest</span><span className="text-white">{interestPct}%</span></div>
-              <div className="flex justify-between"><span className="text-slate-400">Total Contractual</span><span className="text-white font-medium">{formatNaira(total)}</span></div>
-              <div className="flex justify-between"><span className="text-slate-400">Period</span><span className="text-white">{period} {mode === "WEEKLY" ? "weeks" : "days"}</span></div>
+              <h3 className="font-medium text-slate-900 text-base mb-3">Final Preview</h3>
+              <div className="flex justify-between"><span className="text-slate-500">Customer</span><span className="text-slate-900">{customer.fullName}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Mode</span><span className="text-slate-900">{mode}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Amount</span><span className="text-slate-900">{formatNaira(principal)}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Interest</span><span className="text-slate-900">{interestPct}%</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Total Contractual</span><span className="text-slate-900 font-medium">{formatNaira(total)}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Period</span><span className="text-slate-900">{period} {mode === "WEEKLY" ? "weeks" : "days"}</span></div>
               <p className="text-xs text-slate-500 pt-3">After submission the company disburses externally. You will confirm disbursement in Nexora to activate the loan.</p>
             </div>
           )}

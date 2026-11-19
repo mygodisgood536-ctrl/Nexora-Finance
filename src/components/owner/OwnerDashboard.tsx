@@ -4,21 +4,17 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Building2,
   Plus,
+  Building2,
   LogOut,
-  Activity,
-  Users,
-  MapPin,
-  MoreVertical,
   Pause,
   Play,
   Ban,
-  CheckCircle2,
-  X,
+  Loader2,
   Copy,
   Check,
-  Loader2,
+  MapPin,
+  Mail,
 } from "lucide-react";
 
 type Company = {
@@ -31,22 +27,22 @@ type Company = {
   createdAt: string;
   branchCount: number;
   workerCount: number;
-  customerCount: number;
 };
 
-export function OwnerDashboard({ companies }: { companies: Company[] }) {
+type Props = { companies: Company[] };
+
+export function OwnerDashboard({ companies: initial }: Props) {
   const router = useRouter();
+  const [companies, setCompanies] = useState(initial);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ name: "", gmail: "", address: "" });
-  const [createdResult, setCreatedResult] = useState<{
-    url: string;
-    tempPassword: string;
-  } | null>(null);
+  const [form, setForm] = useState({ name: "", slug: "", gmail: "", address: "" });
+  const [created, setCreated] = useState<{ slug: string; tempPassword: string } | null>(null);
+  const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [actionId, setActionId] = useState<string | null>(null);
 
-  async function handleLogout() {
+  async function logout() {
     await fetch("/api/logout", { method: "POST" });
     router.push("/owner/login");
     router.refresh();
@@ -55,6 +51,7 @@ export function OwnerDashboard({ companies }: { companies: Company[] }) {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setCreating(true);
+    setError("");
     try {
       const res = await fetch("/api/owner/companies", {
         method: "POST",
@@ -63,231 +60,156 @@ export function OwnerDashboard({ companies }: { companies: Company[] }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || "Failed to create company");
+        setError(data.error || "Failed to create");
         setCreating(false);
         return;
       }
-      setCreatedResult({
-        url: data.url,
-        tempPassword: data.tempPassword,
-      });
-      setForm({ name: "", gmail: "", address: "" });
-      router.refresh();
+      setCreated({ slug: data.slug, tempPassword: data.tempPassword });
+      setCompanies((prev) => [
+        {
+          id: data.id,
+          name: form.name,
+          slug: data.slug,
+          gmail: form.gmail,
+          address: form.address,
+          status: "ACTIVE",
+          createdAt: new Date().toISOString(),
+          branchCount: 0,
+          workerCount: 0,
+        },
+        ...prev,
+      ]);
+      setForm({ name: "", slug: "", gmail: "", address: "" });
     } catch {
-      alert("Something went wrong");
+      setError("Something went wrong");
     } finally {
       setCreating(false);
     }
   }
 
-  async function handleStatusChange(companyId: string, action: string) {
-    setActionLoading(companyId + action);
+  async function setStatus(id: string, status: string) {
+    setActionId(id);
     try {
-      await fetch(`/api/owner/companies/${companyId}`, {
+      const res = await fetch(`/api/owner/companies/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ status }),
       });
-      router.refresh();
-    } catch {
-      alert("Action failed");
+      if (res.ok) {
+        setCompanies((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
+      }
     } finally {
-      setActionLoading(null);
+      setActionId(null);
     }
   }
 
-  function copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text);
+  function copyCreds() {
+    if (!created) return;
+    navigator.clipboard.writeText(
+      `Workspace: ${created.slug}\nTemporary password: ${created.tempPassword}`
+    );
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
-  const statusColor = (status: string) => {
-    switch (status) {
-      case "ACTIVE":
-        return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
-      case "SUSPENDED":
-        return "bg-amber-500/15 text-amber-400 border-amber-500/30";
-      case "DEACTIVATED":
-        return "bg-red-500/15 text-red-400 border-red-500/30";
-      default:
-        return "bg-slate-500/15 text-slate-400 border-slate-500/30";
-    }
+  const statusStyle = (s: string) => {
+    if (s === "ACTIVE") return "bg-emerald-50 text-emerald-700 border-emerald-100";
+    if (s === "SUSPENDED") return "bg-amber-50 text-amber-700 border-amber-100";
+    return "bg-slate-100 text-slate-500 border-slate-200";
   };
 
   return (
-    <div className="min-h-screen bg-[#05050a]">
-      {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#05050a]/80 backdrop-blur-2xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
-              <span className="text-white font-bold text-sm">N</span>
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold text-white tracking-tight">
-                Nexora
-              </h1>
-              <p className="text-xs text-slate-500 -mt-0.5">
-                Infrastructure Owner
-              </p>
-            </div>
+    <div className="page-shell">
+      <header className="page-header">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-medium tracking-[0.14em] uppercase text-slate-400">
+              Platform Owner
+            </p>
+            <h1 className="text-lg font-bold text-slate-900 tracking-tight">Nexora</h1>
           </div>
-
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400">
-              <Activity className="w-3.5 h-3.5 text-emerald-400" />
-              Platform healthy
-            </div>
-            <button onClick={handleLogout} className="btn-secondary text-xs py-2 px-3">
-              <LogOut className="w-3.5 h-3.5" />
-              Logout
+          <div className="flex items-center gap-2">
+            <button onClick={() => { setShowCreate(true); setCreated(null); setError(""); }} className="btn-primary text-sm py-2.5 px-4">
+              <Plus className="w-4 h-4" /> New company
+            </button>
+            <button onClick={logout} className="btn-ghost" title="Sign out">
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats + Create */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-white tracking-tight">
-              Companies
-            </h2>
-            <p className="text-slate-400 text-sm mt-1">
-              {companies.length} compan{companies.length === 1 ? "y" : "ies"} on
-              the platform
-            </p>
-          </div>
-          <button
-            onClick={() => {
-              setShowCreate(true);
-              setCreatedResult(null);
-            }}
-            className="btn-primary"
-          >
-            <Plus className="w-4 h-4" />
-            Create Company
-          </button>
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-slate-900">Companies</h2>
+          <p className="text-sm text-slate-500 mt-1">
+            Provision and control company workspaces on this infrastructure.
+          </p>
         </div>
 
-        {/* Companies Grid */}
         {companies.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="card p-16 text-center"
-          >
-            <Building2 className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-300 mb-2">
-              No companies yet
-            </h3>
-            <p className="text-slate-500 text-sm mb-6">
-              Create the first company to start renting the infrastructure.
+          <div className="card p-16 text-center">
+            <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">No companies yet</h3>
+            <p className="text-sm text-slate-500 mb-6 max-w-sm mx-auto">
+              Create the first company to provision a fully isolated workspace.
             </p>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="btn-primary"
-            >
-              <Plus className="w-4 h-4" />
-              Create Company
+            <button onClick={() => setShowCreate(true)} className="btn-primary">
+              <Plus className="w-4 h-4" /> Create company
             </button>
-          </motion.div>
+          </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {companies.map((company, i) => (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {companies.map((c, i) => (
               <motion.div
-                key={company.id}
-                initial={{ opacity: 0, y: 16 }}
+                key={c.id}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="card p-5 hover:border-slate-700 transition-colors"
+                transition={{ delay: i * 0.04 }}
+                className="card p-5 hover:shadow-md transition-shadow"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center">
-                      <Building2 className="w-5 h-5 text-sky-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-white leading-tight">
-                        {company.name}
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        {company.slug}.nexora.app
-                      </p>
-                    </div>
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-slate-900 truncate">{c.name}</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">{c.slug}</p>
                   </div>
-                  <span
-                    className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${statusColor(
-                      company.status
-                    )}`}
-                  >
-                    {company.status}
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${statusStyle(c.status)}`}>
+                    {c.status}
                   </span>
                 </div>
-
-                <div className="space-y-2 text-sm text-slate-400 mb-4">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">{company.address}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="w-3.5 h-3.5 shrink-0" />
-                    <span>
-                      {company.branchCount} branches · {company.workerCount}{" "}
-                      workers · {company.customerCount} customers
-                    </span>
-                  </div>
+                <div className="space-y-1.5 text-xs text-slate-500 mb-4">
+                  <p className="flex items-center gap-1.5 truncate"><Mail className="w-3 h-3 shrink-0" /> {c.gmail}</p>
+                  <p className="flex items-center gap-1.5 truncate"><MapPin className="w-3 h-3 shrink-0" /> {c.address}</p>
+                  <p>{c.branchCount} branches · {c.workerCount} workers</p>
                 </div>
-
-                <div className="flex gap-2 pt-3 border-t border-slate-800/80">
-                  {company.status === "ACTIVE" && (
-                    <>
-                      <button
-                        onClick={() =>
-                          handleStatusChange(company.id, "suspend")
-                        }
-                        disabled={!!actionLoading}
-                        className="flex-1 text-xs py-1.5 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors flex items-center justify-center gap-1.5"
-                      >
-                        {actionLoading === company.id + "suspend" ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Pause className="w-3 h-3" />
-                        )}
-                        Suspend
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleStatusChange(company.id, "deactivate")
-                        }
-                        disabled={!!actionLoading}
-                        className="flex-1 text-xs py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors flex items-center justify-center gap-1.5"
-                      >
-                        {actionLoading === company.id + "deactivate" ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Ban className="w-3 h-3" />
-                        )}
-                        Deactivate
-                      </button>
-                    </>
-                  )}
-                  {(company.status === "SUSPENDED" ||
-                    company.status === "DEACTIVATED") && (
+                <div className="flex gap-2">
+                  {c.status === "ACTIVE" && (
                     <button
-                      onClick={() =>
-                        handleStatusChange(company.id, "reactivate")
-                      }
-                      disabled={!!actionLoading}
-                      className="flex-1 text-xs py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors flex items-center justify-center gap-1.5"
+                      onClick={() => setStatus(c.id, "SUSPENDED")}
+                      disabled={actionId === c.id}
+                      className="btn-secondary text-xs flex-1 py-2"
                     >
-                      {actionLoading === company.id + "reactivate" ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <Play className="w-3 h-3" />
-                      )}
+                      {actionId === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Pause className="w-3 h-3" />}
+                      Suspend
+                    </button>
+                  )}
+                  {c.status === "SUSPENDED" && (
+                    <button
+                      onClick={() => setStatus(c.id, "ACTIVE")}
+                      disabled={actionId === c.id}
+                      className="btn-secondary text-xs flex-1 py-2"
+                    >
+                      {actionId === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
                       Reactivate
+                    </button>
+                  )}
+                  {c.status !== "DEACTIVATED" && (
+                    <button
+                      onClick={() => setStatus(c.id, "DEACTIVATED")}
+                      disabled={actionId === c.id}
+                      className="btn-ghost text-xs text-red-600 hover:bg-red-50 py-2"
+                    >
+                      <Ban className="w-3 h-3" />
                     </button>
                   )}
                 </div>
@@ -297,158 +219,110 @@ export function OwnerDashboard({ companies }: { companies: Company[] }) {
         )}
       </main>
 
-      {/* Create Company Modal */}
+      {/* Create modal */}
       <AnimatePresence>
         {showCreate && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
             onClick={() => !creating && setShowCreate(false)}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ type: "spring", duration: 0.4 }}
-              className="card w-full max-w-md p-6"
+              exit={{ opacity: 0, scale: 0.96 }}
+              className="card-elevated w-full max-w-md p-6"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-white">
-                  {createdResult ? "Company Created" : "Create Company"}
-                </h3>
-                <button
-                  onClick={() => setShowCreate(false)}
-                  className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {createdResult ? (
+              {created ? (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-emerald-400 text-sm mb-2">
-                    <CheckCircle2 className="w-4 h-4" />
-                    Company created successfully
-                  </div>
-                  <div>
-                    <label className="label">Company URL</label>
-                    <div className="flex gap-2">
-                      <input
-                        readOnly
-                        value={createdResult.url}
-                        className="input text-sky-300"
-                      />
-                      <button
-                        onClick={() => copyToClipboard(createdResult.url)}
-                        className="btn-secondary px-3"
-                      >
-                        {copied ? (
-                          <Check className="w-4 h-4 text-emerald-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="label">Temporary Password</label>
-                    <div className="flex gap-2">
-                      <input
-                        readOnly
-                        value={createdResult.tempPassword}
-                        className="input font-mono text-amber-300"
-                      />
-                      <button
-                        onClick={() =>
-                          copyToClipboard(createdResult.tempPassword)
-                        }
-                        className="btn-secondary px-3"
-                      >
-                        {copied ? (
-                          <Check className="w-4 h-4 text-emerald-400" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-500 pt-2">
-                    Give the URL and temporary password to the company MD. They
-                    will change the password on first login.
+                  <h3 className="text-lg font-bold text-slate-900">Company ready</h3>
+                  <p className="text-sm text-slate-500">
+                    Hand these credentials to the company. The workspace is already fully provisioned.
                   </p>
-                  <button
-                    onClick={() => {
-                      setShowCreate(false);
-                      setCreatedResult(null);
-                    }}
-                    className="btn-primary w-full mt-2"
-                  >
-                    Done
-                  </button>
+                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 text-sm space-y-2">
+                    <p><span className="text-slate-400">Workspace ID</span><br /><span className="font-medium text-slate-900">{created.slug}</span></p>
+                    <p><span className="text-slate-400">Temporary password</span><br /><span className="font-mono font-medium text-slate-900">{created.tempPassword}</span></p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={copyCreds} className="btn-secondary flex-1">
+                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      {copied ? "Copied" : "Copy"}
+                    </button>
+                    <button onClick={() => { setShowCreate(false); setCreated(null); }} className="btn-primary flex-1">
+                      Done
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <form onSubmit={handleCreate} className="space-y-4">
-                  <div>
-                    <label className="label">Company Name</label>
-                    <input
-                      required
-                      value={form.name}
-                      onChange={(e) =>
-                        setForm({ ...form, name: e.target.value })
-                      }
-                      className="input"
-                      placeholder="e.g. Hope Microfinance"
-                    />
-                  </div>
-                  <div>
-                    <label className="label">Gmail</label>
-                    <input
-                      required
-                      type="email"
-                      value={form.gmail}
-                      onChange={(e) =>
-                        setForm({ ...form, gmail: e.target.value })
-                      }
-                      className="input"
-                      placeholder="company@gmail.com"
-                    />
-                  </div>
-                  <div>
-                    <label className="label">Address</label>
-                    <textarea
-                      required
-                      value={form.address}
-                      onChange={(e) =>
-                        setForm({ ...form, address: e.target.value })
-                      }
-                      className="input min-h-[80px] resize-none"
-                      placeholder="Full company address"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={creating}
-                    className="btn-primary w-full py-3"
-                  >
-                    {creating ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Creating...
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-4 h-4" />
-                        Create Company
-                      </>
+                <>
+                  <h3 className="text-lg font-bold text-slate-900 mb-1">Create company</h3>
+                  <p className="text-sm text-slate-500 mb-5">
+                    Provisions an isolated workspace instantly. No rebuild required.
+                  </p>
+                  <form onSubmit={handleCreate} className="space-y-3">
+                    <div>
+                      <label className="label">Company name</label>
+                      <input
+                        required
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        className="input"
+                        placeholder="e.g. Nobby Microfinance"
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Workspace ID (slug)</label>
+                      <input
+                        required
+                        value={form.slug}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
+                          })
+                        }
+                        className="input"
+                        placeholder="nobby"
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Gmail</label>
+                      <input
+                        required
+                        type="email"
+                        value={form.gmail}
+                        onChange={(e) => setForm({ ...form, gmail: e.target.value })}
+                        className="input"
+                        placeholder="ops@company.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Address</label>
+                      <input
+                        required
+                        value={form.address}
+                        onChange={(e) => setForm({ ...form, address: e.target.value })}
+                        className="input"
+                        placeholder="City, Country"
+                      />
+                    </div>
+                    {error && (
+                      <p className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>
                     )}
-                  </button>
-                </form>
+                    <div className="flex gap-2 pt-2">
+                      <button type="button" onClick={() => setShowCreate(false)} className="btn-secondary flex-1">
+                        Cancel
+                      </button>
+                      <button type="submit" disabled={creating} className="btn-primary flex-1">
+                        {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                        Create
+                      </button>
+                    </div>
+                  </form>
+                </>
               )}
             </motion.div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
