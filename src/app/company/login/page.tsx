@@ -1,23 +1,26 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Loader2, ArrowRight } from "lucide-react";
 import { AuthShell } from "@/components/layout/AuthShell";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
-/**
- * Company workspace login.
- * Pre-login: neutral identity only (no Nexora / BM / CO).
- * After login: company name is supplied by session everywhere.
- */
-export default function CompanyLoginPage() {
+function CompanyLoginForm() {
   const router = useRouter();
-  const [slug, setSlug] = useState("");
+  const searchParams = useSearchParams();
+  const presetSlug = searchParams.get("slug") || "";
+
+  const [slug, setSlug] = useState(presetSlug);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [tried, setTried] = useState(false);
+
+  useEffect(() => {
+    if (presetSlug) setSlug(presetSlug);
+  }, [presetSlug]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,9 +33,16 @@ export default function CompanyLoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ slug: slug.trim().toLowerCase(), password }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error || "Invalid credentials");
+        const msg = data.error || "";
+        if (msg.toLowerCase().includes("database") || msg.toLowerCase().includes("prisma")) {
+          setError("Sign-in is temporarily unavailable. Please try again shortly.");
+        } else if (res.status === 401) {
+          setError("Incorrect workspace or password.");
+        } else {
+          setError(msg || "Unable to sign in.");
+        }
         setLoading(false);
         return;
       }
@@ -48,41 +58,35 @@ export default function CompanyLoginPage() {
     }
   }
 
-  const displayBrand = slug.trim() ? slug.trim() : "Workspace";
+  const brand = slug.trim() || "Workspace";
 
   return (
     <AuthShell
-      brand={displayBrand}
+      brand={brand}
       subtitle="Company workspace"
       formTitle="Sign in"
-      skipSplash={tried}
+      skipSplash={tried || !!presetSlug}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="label">Workspace ID</label>
-          <input
-            type="text"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
-            className="input"
-            placeholder="your-company"
-            required
-            autoComplete="organization"
-          />
-        </div>
+        {!presetSlug && (
+          <div>
+            <label className="label">Workspace ID</label>
+            <input
+              type="text"
+              value={slug}
+              onChange={(e) =>
+                setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))
+              }
+              className="input"
+              placeholder="your-company"
+              required
+            />
+          </div>
+        )}
         <div>
           <label className="label">Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="input"
-            placeholder="••••••••"
-            required
-            autoComplete="current-password"
-          />
+          <PasswordInput value={password} onChange={setPassword} required />
         </div>
-
         {error && (
           <motion.div
             initial={{ opacity: 0, y: -4 }}
@@ -92,7 +96,6 @@ export default function CompanyLoginPage() {
             {error}
           </motion.div>
         )}
-
         <button type="submit" disabled={loading} className="btn-primary w-full py-4 mt-2">
           {loading ? (
             <>
@@ -108,5 +111,19 @@ export default function CompanyLoginPage() {
         </button>
       </form>
     </AuthShell>
+  );
+}
+
+export default function CompanyLoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[100dvh] bg-black flex items-center justify-center text-white">
+          Loading...
+        </div>
+      }
+    >
+      <CompanyLoginForm />
+    </Suspense>
   );
 }

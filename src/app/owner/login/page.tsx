@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Loader2, ArrowRight } from "lucide-react";
 import { AuthShell } from "@/components/layout/AuthShell";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 /**
- * Platform Owner login only.
- * Branding: Nexora infrastructure — no company / BM / CO language.
+ * Infrastructure Owner authentication only.
+ * Main NEXORA URL leads here. No company / branch / staff selection.
  */
 export default function OwnerLoginPage() {
   const router = useRouter();
@@ -29,31 +30,47 @@ export default function OwnerLoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error || "Invalid credentials");
+        // Never surface raw technical messages to the user
+        const msg = data.error || "";
+        if (
+          msg.toLowerCase().includes("database") ||
+          msg.toLowerCase().includes("prisma") ||
+          msg.toLowerCase().includes("generate")
+        ) {
+          setError("Sign-in is temporarily unavailable. Please try again shortly.");
+        } else if (res.status === 401) {
+          setError("Incorrect username or password.");
+        } else {
+          setError(msg || "Unable to sign in. Please try again.");
+        }
         setLoading(false);
         return;
       }
       router.push("/owner");
       router.refresh();
     } catch {
-      setError("Unable to reach the server. Check your connection.");
+      setError("Unable to reach the server. Check your connection and try again.");
       setLoading(false);
     }
   }
 
   return (
     <AuthShell
-      brand="Nexora"
-      subtitle="Infrastructure access"
+      brand="NEXORA"
+      tagline="Intelligent Infrastructure for Financial Growth."
+      subtitle="Infrastructure Owner"
       formTitle="Sign in"
       skipSplash={tried}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="label">Username</label>
+          <label className="label" htmlFor="owner-username">
+            Username
+          </label>
           <input
+            id="owner-username"
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -64,15 +81,14 @@ export default function OwnerLoginPage() {
           />
         </div>
         <div>
-          <label className="label">Password</label>
-          <input
-            type="password"
+          <label className="label" htmlFor="owner-password">
+            Password
+          </label>
+          <PasswordInput
+            id="owner-password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="input"
-            placeholder="••••••••"
+            onChange={setPassword}
             required
-            autoComplete="current-password"
           />
         </div>
 

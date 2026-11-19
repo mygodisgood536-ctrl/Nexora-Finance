@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Loader2, ArrowRight } from "lucide-react";
 import { AuthShell } from "@/components/layout/AuthShell";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 /**
  * Branch worker login (BM or CO).
@@ -95,13 +96,7 @@ export default function BranchLoginPage() {
         </div>
         <div>
           <label className="label">Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="input"
-            required
-          />
+          <PasswordInput value={password} onChange={setPassword} required />
         </div>
 
         {error && (

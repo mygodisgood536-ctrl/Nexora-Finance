@@ -36,8 +36,8 @@ export function OwnerDashboard({ companies: initial }: Props) {
   const [companies, setCompanies] = useState(initial);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ name: "", slug: "", gmail: "", address: "" });
-  const [created, setCreated] = useState<{ slug: string; tempPassword: string } | null>(null);
+  const [form, setForm] = useState({ name: "", gmail: "", address: "" });
+  const [created, setCreated] = useState<{ slug: string; tempPassword: string; accessUrl: string; customHost?: string } | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
@@ -64,7 +64,7 @@ export function OwnerDashboard({ companies: initial }: Props) {
         setCreating(false);
         return;
       }
-      setCreated({ slug: data.slug, tempPassword: data.tempPassword });
+      setCreated({ slug: data.slug, tempPassword: data.tempPassword, accessUrl: data.accessUrl, customHost: data.customHost });
       setCompanies((prev) => [
         {
           id: data.id,
@@ -79,7 +79,7 @@ export function OwnerDashboard({ companies: initial }: Props) {
         },
         ...prev,
       ]);
-      setForm({ name: "", slug: "", gmail: "", address: "" });
+      setForm({ name: "", gmail: "", address: "" });
     } catch {
       setError("Something went wrong");
     } finally {
@@ -106,7 +106,7 @@ export function OwnerDashboard({ companies: initial }: Props) {
   function copyCreds() {
     if (!created) return;
     navigator.clipboard.writeText(
-      `Workspace: ${created.slug}\nTemporary password: ${created.tempPassword}`
+      `Access URL: ${created.accessUrl}\nTemporary password: ${created.tempPassword}`
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -124,9 +124,9 @@ export function OwnerDashboard({ companies: initial }: Props) {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div>
             <p className="text-[11px] font-medium tracking-[0.14em] uppercase text-slate-400">
-              Platform Owner
+              Infrastructure Owner
             </p>
-            <h1 className="text-lg font-bold text-slate-900 tracking-tight">Nexora</h1>
+            <h1 className="text-lg font-bold text-slate-900 tracking-tight">NEXORA</h1>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => { setShowCreate(true); setCreated(null); setError(""); }} className="btn-primary text-sm py-2.5 px-4">
@@ -143,7 +143,7 @@ export function OwnerDashboard({ companies: initial }: Props) {
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-slate-900">Companies</h2>
           <p className="text-sm text-slate-500 mt-1">
-            Provision and control company workspaces on this infrastructure.
+            Create a company to provision its workspace, access URL and temporary credentials.
           </p>
         </div>
 
@@ -239,8 +239,11 @@ export function OwnerDashboard({ companies: initial }: Props) {
                   <p className="text-sm text-slate-500">
                     Hand these credentials to the company. The workspace is already fully provisioned.
                   </p>
-                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 text-sm space-y-2">
-                    <p><span className="text-slate-400">Workspace ID</span><br /><span className="font-medium text-slate-900">{created.slug}</span></p>
+                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 text-sm space-y-3">
+                    <p><span className="text-slate-400">Access URL</span><br /><span className="font-medium text-slate-900 break-all">{created.accessUrl}</span></p>
+                    {created.customHost && (
+                      <p><span className="text-slate-400">Custom host (when DNS is set)</span><br /><span className="font-medium text-slate-900">{created.customHost}</span></p>
+                    )}
                     <p><span className="text-slate-400">Temporary password</span><br /><span className="font-mono font-medium text-slate-900">{created.tempPassword}</span></p>
                   </div>
                   <div className="flex gap-2">
@@ -268,21 +271,6 @@ export function OwnerDashboard({ companies: initial }: Props) {
                         onChange={(e) => setForm({ ...form, name: e.target.value })}
                         className="input"
                         placeholder="e.g. Nobby Microfinance"
-                      />
-                    </div>
-                    <div>
-                      <label className="label">Workspace ID (slug)</label>
-                      <input
-                        required
-                        value={form.slug}
-                        onChange={(e) =>
-                          setForm({
-                            ...form,
-                            slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
-                          })
-                        }
-                        className="input"
-                        placeholder="nobby"
                       />
                     </div>
                     <div>

@@ -1,41 +1,10 @@
-import Link from "next/link";
+import { redirect } from "next/navigation";
 
 /**
- * Public entry — routes people to the correct environment.
- * Does not mix Platform Owner, Company, or Staff identities.
+ * Main NEXORA URL = Infrastructure Owner entry only.
+ * Company / branch / staff environments are prebuilt and provisioned
+ * when records are created — they are never selectable here.
  */
 export default function HomePage() {
-  return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
-      <div className="text-center max-w-md">
-        <h1 className="text-3xl font-bold tracking-[0.12em] uppercase text-black mb-2">
-          Nexora
-        </h1>
-        <p className="text-sm text-slate-500 mb-10">
-          Microfinance infrastructure
-        </p>
-
-        <div className="space-y-3">
-          <Link
-            href="/owner/login"
-            className="btn-primary w-full py-4 block text-center"
-          >
-            Platform Owner
-          </Link>
-          <Link
-            href="/company/login"
-            className="btn-secondary w-full py-4 block text-center"
-          >
-            Company workspace
-          </Link>
-          <Link
-            href="/branch/login"
-            className="btn-secondary w-full py-4 block text-center"
-          >
-            Branch staff
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
+  redirect("/owner/login");
 }

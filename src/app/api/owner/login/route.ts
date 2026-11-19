@@ -18,66 +18,66 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Lazy import so missing Prisma client gives a clear message
     let prisma: any;
     try {
       const mod = await import("@/lib/db");
       prisma = mod.prisma;
-    } catch (e: any) {
-      console.error("Prisma import failed:", e);
+    } catch (e) {
+      console.error("[owner/login] Prisma import failed:", e);
       return NextResponse.json(
-        { error: "Database client not ready. Run: npm install && npx prisma db push && npx prisma generate" },
-        { status: 500 }
+        { error: "Sign-in is temporarily unavailable. Please try again shortly." },
+        { status: 503 }
       );
     }
 
     const ownerUsername = process.env.NEXORA_OWNER_USERNAME || "owner";
     const ownerPassword = process.env.NEXORA_OWNER_PASSWORD || "Shellybr@123";
 
-    let owner = await prisma.platformOwner.findUnique({
-      where: { username: ownerUsername },
-    });
-
-    if (!owner) {
-      const passwordHash = await hashPassword(ownerPassword);
-      owner = await prisma.platformOwner.create({
-        data: {
-          username: ownerUsername,
-          passwordHash,
-        },
+    let owner;
+    try {
+      owner = await prisma.platformOwner.findUnique({
+        where: { username: ownerUsername },
       });
+
+      if (!owner) {
+        const passwordHash = await hashPassword(ownerPassword);
+        owner = await prisma.platformOwner.create({
+          data: {
+            username: ownerUsername,
+            passwordHash,
+          },
+        });
+      }
+    } catch (e) {
+      console.error("[owner/login] Database operation failed:", e);
+      return NextResponse.json(
+        { error: "Sign-in is temporarily unavailable. Please try again shortly." },
+        { status: 503 }
+      );
     }
 
     if (username !== owner.username) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+      return NextResponse.json({ error: "Incorrect username or password." }, { status: 401 });
     }
 
     const valid = await verifyPassword(password, owner.passwordHash);
     if (!valid) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+      return NextResponse.json({ error: "Incorrect username or password." }, { status: 401 });
     }
 
     const token = await createSessionToken({
       sub: owner.id,
       role: "PLATFORM_OWNER",
-      name: "Platform Owner",
+      name: "Infrastructure Owner",
     });
 
     await setSessionCookie(token);
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error("Owner login error:", error);
-    const msg = error?.message || "Internal server error";
-    // Surface common Prisma / DB errors clearly
-    if (msg.includes("Can't reach database") || msg.includes("P1001") || msg.includes("does not exist")) {
-      return NextResponse.json(
-        { error: "Database not ready. Run: npx prisma db push && npx prisma generate" },
-        { status: 500 }
-      );
-    }
+  } catch (error) {
+    console.error("[owner/login] Unexpected error:", error);
     return NextResponse.json(
-      { error: msg.includes("prisma") ? "Database error — run prisma generate & db push" : "Internal server error" },
+      { error: "Sign-in is temporarily unavailable. Please try again shortly." },
       { status: 500 }
     );
   }

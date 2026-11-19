@@ -6,8 +6,10 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite" // Will switch to PostgreSQL / Neon later
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Neon: use pooled URL for app; optional DIRECT_URL for migrations
+  // directUrl = env("DIRECT_URL")
 }
 
 // ============================================================
