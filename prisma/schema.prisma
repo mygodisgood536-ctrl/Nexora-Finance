@@ -36,6 +36,7 @@ model Company {
   passwordHash    String
   tempPassword    String?  // cleared after first login
   mustChangePassword Boolean @default(true)
+  sessionVersion  Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -81,6 +82,7 @@ model Worker {
   accountStatus           String   @default("ACTIVE") // ACTIVE | SUSPENDED | DEACTIVATED
   currentWorkerIdentityId String?
   passwordHash            String
+  sessionVersion          Int      @default(0)
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 
@@ -292,6 +294,7 @@ model LoanApplication {
   // Captured data as JSON for flexibility during multi-stage
   capturedData                String?  // JSON
   repaymentMode               String?  // WEEKLY | DAILY
+  loanCycle                   Int?
   requestedAmount             Float?
   interestPercentage          Float?
   repaymentAmount             Float?
@@ -326,6 +329,7 @@ model FaceCapture {
   applicationId     String
   type              String   // CUSTOMER | GUARANTOR
   imagePath         String
+  imageData         String?
   meanBrightness    Float?
   laplacianVariance Float?
   faceConfidence    Float?
@@ -341,6 +345,7 @@ model EvidenceCapture {
   applicationId String
   type          String   // CUSTOMER_HOUSE | GUARANTOR_HOUSE | CUSTOMER_BUSINESS | GUARANTOR_BUSINESS | LOAN_FORM
   imagePath     String
+  imageData     String?
   pageNumber    Int?     // for loan form pages
   createdAt     DateTime @default(now())
 
@@ -361,6 +366,9 @@ model Loan {
   virtualAccountStatus  String   @default("PENDING") // PENDING | RETRYING | CREATED | FAILED
   virtualAccountId      String?
   virtualAccountNumber  String?
+  provisioningAttempts  Int      @default(0)
+  nextProvisioningAt    DateTime?
+  provisioningError     String?
   activatedAt           DateTime @default(now())
   completedAt           DateTime?
   outstandingBalance    Float
@@ -485,4 +493,41 @@ model OperationalWarning {
   resolvedAt  DateTime?
 
   @@index([companyId, resolved])
+}
+
+// ============================================================
+// IN-APP NOTIFICATIONS (Vision: notifications are in-app only)
+// ============================================================
+model Notification {
+  id          String   @id @default(cuid())
+  companyId   String
+  branchId    String?
+  workerId    String?
+  customerId  String?
+  title       String
+  message     String
+  type        String   @default("INFO") // INFO | ALLOCATION | VA_ALERT | INACTIVITY | WARNING
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([companyId, read])
+  @@index([workerId, read])
+}
+
+// ============================================================
+// IMMUTABLE AUDIT LOG
+// ============================================================
+model AuditLog {
+  id                String   @id @default(cuid())
+  companyId         String
+  branchId          String?
+  actorIdentityId   String?
+  actorRole         String?
+  action            String
+  entity            String
+  entityId          String?
+  details           String?
+  createdAt         DateTime @default(now())
+
+  @@index([companyId, createdAt])
 }

@@ -69,8 +69,8 @@ export function TrendChart({ data, height = 180 }: Props) {
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
+          initial={{ pathLength: 0 as any }}
+          animate={{ pathLength: 1 as any }}
           transition={{ duration: 1.1, ease: "easeOut" }}
         />
         <motion.path
@@ -87,8 +87,8 @@ export function TrendChart({ data, height = 180 }: Props) {
           strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
+          initial={{ pathLength: 0 as any }}
+          animate={{ pathLength: 1 as any }}
           transition={{ duration: 1.2, ease: "easeOut", delay: 0.1 }}
         />
         {data.map((d, i) => (
