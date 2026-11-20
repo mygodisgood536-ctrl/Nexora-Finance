@@ -2,12 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import { ArrowLeft, Lock, Sun, Moon, Loader2 } from "lucide-react";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
+/**
+ * Company Settings — vision §2.2
+ * Only: Change password, Reset password, Light mode and Dark mode.
+ */
 export default function CompanySettingsPage() {
   const router = useRouter();
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -38,7 +42,8 @@ export default function CompanySettingsPage() {
         setConfirm("");
         setShowPassword(false);
       } else {
-        setMessage("Failed to update password");
+        const data = await res.json().catch(() => ({}));
+        setMessage(data.error || "Failed to update password");
       }
     } catch {
       setMessage("Something went wrong");
@@ -48,77 +53,83 @@ export default function CompanySettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
+    <div className="page-shell">
+      <header className="page-header">
         <div className="max-w-3xl mx-auto px-4 h-16 flex items-center gap-4">
-          <button onClick={() => router.push("/company")} className="p-2 rounded-lg hover:bg-slate-800 text-slate-400">
+          <button
+            onClick={() => router.push("/company")}
+            className="p-2 rounded-xl hover:bg-slate-100 text-slate-500"
+          >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-lg font-semibold text-white">Settings</h1>
+          <h1 className="text-lg font-semibold text-slate-900">Settings</h1>
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-        {/* Theme */}
-        <div className="card p-6">
-          <h2 className="font-medium text-white mb-4">Appearance</h2>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setTheme("dark")}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border transition-colors ${
-                theme === "dark" ? "border-sky-500/50 bg-sky-500/10 text-sky-300" : "border-slate-700 text-slate-400 hover:bg-slate-800"
-              }`}
-            >
-              <Moon className="w-4 h-4" /> Dark mode
-            </button>
+        <div className="card p-5">
+          <h2 className="text-sm font-semibold text-slate-900 mb-3">Appearance</h2>
+          <div className="flex gap-2">
             <button
               onClick={() => setTheme("light")}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border transition-colors ${
-                theme === "light" ? "border-sky-500/50 bg-sky-500/10 text-sky-300" : "border-slate-700 text-slate-400 hover:bg-slate-800"
-              }`}
+              className={`btn-secondary flex-1 ${theme === "light" ? "ring-2 ring-black" : ""}`}
             >
               <Sun className="w-4 h-4" /> Light mode
             </button>
+            <button
+              onClick={() => setTheme("dark")}
+              className={`btn-secondary flex-1 ${theme === "dark" ? "ring-2 ring-black" : ""}`}
+            >
+              <Moon className="w-4 h-4" /> Dark mode
+            </button>
           </div>
-          <p className="text-xs text-slate-500 mt-3">Light mode support is prepared. Dark is the default creative theme.</p>
+          <p className="text-xs text-slate-400 mt-2">
+            Preference is stored on this device for now.
+          </p>
         </div>
 
-        {/* Change password */}
-        <div className="card p-6">
-          <h2 className="font-medium text-white mb-4">Change Password</h2>
+        <div className="card p-5">
+          <h2 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+            <Lock className="w-4 h-4" /> Change password
+          </h2>
           {!showPassword ? (
             <button onClick={() => setShowPassword(true)} className="btn-secondary">
-              <Lock className="w-4 h-4" /> Change Password
+              Change password
             </button>
           ) : (
-            <form onSubmit={handleChangePassword} className="space-y-4">
+            <form onSubmit={handleChangePassword} className="space-y-3">
               <div>
-                <label className="label">New Password</label>
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="input" required />
+                <label className="label">New password</label>
+                <PasswordInput value={password} onChange={setPassword} required />
               </div>
               <div>
-                <label className="label">Confirm Password</label>
-                <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className="input" required />
+                <label className="label">Confirm password</label>
+                <PasswordInput value={confirm} onChange={setConfirm} required />
               </div>
               {message && (
-                <p className={`text-sm ${message.includes("success") ? "text-emerald-400" : "text-red-400"}`}>{message}</p>
+                <p
+                  className={`text-sm ${
+                    message.includes("success") ? "text-emerald-600" : "text-red-600"
+                  }`}
+                >
+                  {message}
+                </p>
               )}
-              <div className="flex gap-3">
-                <button type="button" onClick={() => setShowPassword(false)} className="btn-secondary flex-1">Cancel</button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(false)}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
                 <button type="submit" disabled={loading} className="btn-primary flex-1">
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Update"}
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  Save
                 </button>
               </div>
             </form>
           )}
-        </div>
-
-        {/* Reset password note */}
-        <div className="card p-6">
-          <h2 className="font-medium text-white mb-2">Reset Password</h2>
-          <p className="text-sm text-slate-400">
-            Contact the Platform Owner if you need a full password reset. Company settings only contain Change password, Reset password, Light mode and Dark mode as specified in the vision.
-          </p>
         </div>
       </main>
     </div>

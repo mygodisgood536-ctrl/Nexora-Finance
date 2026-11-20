@@ -8,8 +8,8 @@ import { AuthShell } from "@/components/layout/AuthShell";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 
 /**
- * Infrastructure Owner authentication only.
- * Main NEXORA URL leads here. No company / branch / staff selection.
+ * Infrastructure Owner login — vision §2
+ * Main NEXORA URL only leads here. No company/branch/staff selection.
  */
 export default function OwnerLoginPage() {
   const router = useRouter();
@@ -32,18 +32,17 @@ export default function OwnerLoginPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        // Never surface raw technical messages to the user
-        const msg = data.error || "";
+        const msg = (data.error || "").toLowerCase();
         if (
-          msg.toLowerCase().includes("database") ||
-          msg.toLowerCase().includes("prisma") ||
-          msg.toLowerCase().includes("generate")
+          msg.includes("database") ||
+          msg.includes("prisma") ||
+          msg.includes("generate")
         ) {
           setError("Sign-in is temporarily unavailable. Please try again shortly.");
         } else if (res.status === 401) {
           setError("Incorrect username or password.");
         } else {
-          setError(msg || "Unable to sign in. Please try again.");
+          setError(data.error || "Unable to sign in. Please try again.");
         }
         setLoading(false);
         return;

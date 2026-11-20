@@ -13,10 +13,14 @@ type Props = {
 };
 
 /**
- * TikTok / SLATE style:
- * 1. Full black splash — brand only (held 5 seconds)
- * 2. Smooth white curve rising from bottom
- * 3. Login form: black curved header + white body
+ * Exact TikTok / DailyFlutterUI "SLATE" login experience:
+ *
+ * 1. SPLASH (5 seconds): pure solid black, ONLY the brand word in white.
+ *    No icon, no shield, no progress bar, no extra decoration.
+ * 2. TRANSITION: white curved shape expands upward from the bottom;
+ *    black recedes with a soft curved edge.
+ * 3. LOGIN: solid black curved top header + pure white body,
+ *    soft grey inputs, solid black button.
  */
 export function AuthShell({
   brand,
@@ -32,64 +36,92 @@ export function AuthShell({
 
   useEffect(() => {
     if (skipSplash) return;
-    // Hold splash for 5 seconds, then animate transition (~0.85s)
-    const t1 = setTimeout(() => setPhase("transition"), 5000);
-    const t2 = setTimeout(() => setPhase("form"), 5850);
+    const toTransition = setTimeout(() => setPhase("transition"), 5000);
+    const toForm = setTimeout(() => setPhase("form"), 5850);
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
+      clearTimeout(toTransition);
+      clearTimeout(toForm);
     };
   }, [skipSplash]);
 
   return (
     <div
       className="relative overflow-hidden bg-white"
-      style={{ minHeight: "100dvh", height: "100dvh" }}
+      style={{ minHeight: "100dvh", height: "100dvh", width: "100%" }}
     >
       <AnimatePresence mode="wait">
+        {/* ===== 1. SPLASH: solid black + brand word only ===== */}
         {phase === "splash" && (
           <motion.div
             key="splash"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black"
-            style={{ minHeight: "100dvh", height: "100dvh", width: "100%" }}
+            transition={{ duration: 0.35 }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+            style={{
+              background: "#000000",
+              minHeight: "100dvh",
+              height: "100dvh",
+              width: "100%",
+            }}
           >
             <motion.h1
-              initial={{ opacity: 0, scale: 0.94 }}
+              initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-              className="text-4xl sm:text-5xl font-bold text-white tracking-[0.2em] uppercase"
+              transition={{
+                delay: 0.25,
+                duration: 0.75,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              className="text-white font-bold uppercase"
+              style={{
+                fontSize: "clamp(2rem, 8vw, 3.25rem)",
+                letterSpacing: "0.2em",
+                color: "#ffffff",
+              }}
             >
               {brand}
             </motion.h1>
-            {tagline && (
+            {tagline ? (
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 1.1, duration: 0.7 }}
-                className="mt-6 text-sm sm:text-[15px] text-white/50 font-light tracking-wide text-center px-8 max-w-xs leading-relaxed"
+                transition={{ delay: 1.0, duration: 0.65 }}
+                className="mt-6 text-center px-8 max-w-xs font-light"
+                style={{
+                  color: "rgba(255,255,255,0.5)",
+                  fontSize: "0.9rem",
+                  letterSpacing: "0.02em",
+                  lineHeight: 1.5,
+                }}
               >
                 {tagline}
               </motion.p>
-            )}
+            ) : null}
           </motion.div>
         )}
 
+        {/* ===== 2. TRANSITION: white curve rises from bottom ===== */}
         {phase === "transition" && (
           <motion.div
             key="transition"
-            className="fixed inset-0 z-50 bg-black"
-            style={{ minHeight: "100dvh", height: "100dvh" }}
+            className="fixed inset-0 z-50"
+            style={{
+              background: "#000000",
+              minHeight: "100dvh",
+              height: "100dvh",
+            }}
             initial={{ clipPath: "inset(0 0 0 0)" }}
             animate={{ clipPath: "inset(0 0 100% 0)" }}
             transition={{ duration: 0.85, ease: [0.65, 0, 0.35, 1] }}
           >
             <motion.div
-              className="absolute left-0 right-0 bottom-0 bg-white"
-              style={{ height: "58%" }}
+              className="absolute left-0 right-0 bottom-0"
+              style={{
+                background: "#ffffff",
+                height: "58%",
+              }}
               initial={{
                 borderRadius: "100% 100% 0 0 / 48% 48% 0 0",
                 y: "110%",
@@ -104,6 +136,7 @@ export function AuthShell({
         )}
       </AnimatePresence>
 
+      {/* ===== 3. LOGIN FORM: black curve header + white body ===== */}
       <motion.div
         initial={skipSplash ? false : { opacity: 0 }}
         animate={{ opacity: phase === "form" ? 1 : 0 }}
@@ -111,27 +144,59 @@ export function AuthShell({
         className="flex flex-col"
         style={{ minHeight: "100dvh" }}
       >
-        <div className="relative bg-black text-white pt-14 pb-20 px-6 shrink-0">
+        <div
+          className="relative shrink-0 text-white px-6 pt-14 pb-20"
+          style={{ background: "#000000" }}
+        >
           <div className="max-w-md mx-auto">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-[0.16em] uppercase">
+            <h1
+              className="font-bold uppercase"
+              style={{
+                fontSize: "clamp(1.5rem, 5vw, 1.875rem)",
+                letterSpacing: "0.16em",
+                color: "#ffffff",
+              }}
+            >
               {brand}
             </h1>
-            {tagline && (
-              <p className="mt-2 text-xs sm:text-sm text-white/45 font-light tracking-wide">
+            {tagline ? (
+              <p
+                className="mt-2 font-light"
+                style={{
+                  color: "rgba(255,255,255,0.45)",
+                  fontSize: "0.8rem",
+                  letterSpacing: "0.02em",
+                }}
+              >
                 {tagline}
               </p>
-            )}
-            <p className="mt-3 text-sm text-white/65">{subtitle}</p>
+            ) : null}
+            <p
+              className="mt-3"
+              style={{ color: "rgba(255,255,255,0.65)", fontSize: "0.9rem" }}
+            >
+              {subtitle}
+            </p>
           </div>
+          {/* Curve into white body */}
           <div
-            className="absolute left-0 right-0 bottom-0 h-12 bg-white"
-            style={{ borderRadius: "50% 50% 0 0 / 100% 100% 0 0" }}
+            className="absolute left-0 right-0 bottom-0"
+            style={{
+              height: "48px",
+              background: "#ffffff",
+              borderRadius: "50% 50% 0 0 / 100% 100% 0 0",
+            }}
           />
         </div>
 
-        <div className="flex-1 bg-white px-6 pb-12 -mt-1">
+        <div className="flex-1 px-6 pb-12 -mt-1" style={{ background: "#ffffff" }}>
           <div className="max-w-md mx-auto pt-2">
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">{formTitle}</h2>
+            <h2
+              className="font-bold mb-6"
+              style={{ color: "#0f172a", fontSize: "1.5rem" }}
+            >
+              {formTitle}
+            </h2>
             {children}
           </div>
         </div>
