@@ -2,22 +2,23 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
   Plus,
   Users,
   MapPin,
-  User,
-  Phone,
-  MoreVertical,
   Loader2,
   UserPlus,
   Ban,
   Pause,
   Play,
-  RefreshCw,
+  Copy,
+  Check,
+  CreditCard,
 } from "lucide-react";
+import { TrendChart, ChartPoint } from "@/components/ui/TrendChart";
+import { ProviderSetup } from "@/components/company/ProviderSetup";
 
 type Worker = {
   id: string;
@@ -42,11 +43,28 @@ type Props = {
     customerCount: number;
     groupCount: number;
     loanCount: number;
+    branchUrl: string;
+    branchLoginPath: string;
   };
   workers: Worker[];
+  metrics: {
+    expectedToday: number;
+    realisedToday: number;
+    series: ChartPoint[];
+  };
+  provider: {
+    providerCode: string;
+    connectionStatus: string;
+    webhookUrl: string | null;
+  } | null;
 };
 
-export function BranchDetail({ branch, workers }: Props) {
+/**
+ * Company-side branch workplace — vision §3.4 + §4 + §5
+ * Charts, branch URL, provider management, workers.
+ * Company inspects without branch-worker login.
+ */
+export function BranchDetail({ branch, workers, metrics, provider }: Props) {
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -57,11 +75,21 @@ export function BranchDetail({ branch, workers }: Props) {
     passport: "",
   });
   const [createdPassword, setCreatedPassword] = useState<string | null>(null);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState<string | null>(null);
+  const [actionId, setActionId] = useState<string | null>(null);
+  const [showProvider, setShowProvider] = useState(false);
+
+  function copyText(key: string, text: string) {
+    navigator.clipboard.writeText(text);
+    setCopied(key);
+    setTimeout(() => setCopied(null), 2000);
+  }
 
   async function handleCreateWorker(e: React.FormEvent) {
     e.preventDefault();
     setCreating(true);
+    setError("");
     try {
       const res = await fetch("/api/company/workers", {
         method: "POST",
@@ -70,232 +98,323 @@ export function BranchDetail({ branch, workers }: Props) {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || "Failed to create worker");
+        setError(data.error || "Failed to create worker");
         setCreating(false);
         return;
       }
-      setCreatedPassword(data.tempPassword);
+      setCreatedPassword(data.tempPassword || data.password || "");
       setForm({ role: "CO", name: "", phone: "", passport: "" });
+      setCreating(false);
+      // Stay on this branch — refresh data
       router.refresh();
     } catch {
-      alert("Something went wrong");
-    } finally {
+      setError("Something went wrong");
       setCreating(false);
     }
   }
 
-  async function handleWorkerAction(workerId: string, action: string) {
-    setActionLoading(workerId + action);
+  async function setWorkerStatus(id: string, accountStatus: string) {
+    setActionId(id);
     try {
-      await fetch(`/api/company/workers/${workerId}`, {
+      await fetch(`/api/company/workers/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ accountStatus }),
       });
       router.refresh();
-    } catch {
-      alert("Action failed");
     } finally {
-      setActionLoading(null);
+      setActionId(null);
     }
   }
 
-  const statusColor = (s: string) => {
-    if (s === "ACTIVE") return "text-emerald-400 bg-emerald-500/10";
-    if (s === "SUSPENDED") return "text-amber-400 bg-amber-500/10";
-    return "text-red-400 bg-red-500/10";
-  };
-
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-slate-50/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-4">
+    <div className="page-shell">
+      <header className="page-header">
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center gap-3">
           <button
             onClick={() => router.push("/company")}
-            className="p-2 rounded-lg hover:bg-slate-100 text-slate-500"
+            className="p-2 rounded-xl hover:bg-slate-100 text-slate-500"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div>
-            <h1 className="text-lg font-semibold text-slate-900">{branch.name}</h1>
-            <p className="text-xs text-slate-500">
-              {branch.slug}.{branch.companySlug}.nexora.app
-            </p>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg font-bold text-slate-900 truncate">{branch.name}</h1>
+            <p className="text-[11px] text-slate-400 truncate">{branch.companyName}</p>
           </div>
+          <button
+            onClick={() => setShowProvider((v) => !v)}
+            className="btn-secondary text-xs py-2"
+          >
+            <CreditCard className="w-3.5 h-3.5" /> Provider
+          </button>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Branch overview */}
-        <div className="card p-6 mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">{branch.name}</h2>
-              <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5" />
-                {branch.address}
-              </p>
-            </div>
-            <div className="flex gap-6 text-sm">
-              <div>
-                <p className="text-slate-500 text-xs">Customers</p>
-                <p className="text-lg font-semibold text-slate-900">{branch.customerCount}</p>
-              </div>
-              <div>
-                <p className="text-slate-500 text-xs">Groups</p>
-                <p className="text-lg font-semibold text-slate-900">{branch.groupCount}</p>
-              </div>
-              <div>
-                <p className="text-slate-500 text-xs">Loans</p>
-                <p className="text-lg font-semibold text-slate-900">{branch.loanCount}</p>
-              </div>
-            </div>
+      <main className="max-w-6xl mx-auto px-4 py-8 space-y-6">
+        {/* Branch URL — vision: generated on create, available to copy */}
+        <div className="card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs text-slate-400 mb-0.5">Branch URL</p>
+            <p className="text-sm font-medium text-slate-900 break-all">{branch.branchUrl}</p>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Staff sign in at {branch.branchLoginPath} using this branch identity
+            </p>
           </div>
-        </div>
-
-        {/* Workers */}
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-bold text-slate-900">Workers</h2>
-          <button onClick={() => { setShowCreate(true); setCreatedPassword(null); }} className="btn-primary text-sm">
-            <UserPlus className="w-4 h-4" />
-            Create Worker
+          <button
+            onClick={() => copyText("url", branch.branchUrl)}
+            className="btn-secondary text-sm shrink-0"
+          >
+            {copied === "url" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+            {copied === "url" ? "Copied" : "Copy URL"}
           </button>
         </div>
 
-        {workers.length === 0 ? (
-          <div className="card p-12 text-center">
-            <Users className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-            <h3 className="font-medium text-slate-600 mb-1">No workers yet</h3>
-            <p className="text-sm text-slate-500 mb-5">Create a Branch Manager or Collection Officer.</p>
-            <button onClick={() => setShowCreate(true)} className="btn-primary">
-              <UserPlus className="w-4 h-4" /> Create Worker
+        {/* Today metrics + chart — vision §3.4 */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="card p-4">
+            <p className="text-xs text-slate-400">Expected today</p>
+            <p className="text-xl font-bold text-slate-900 mt-1">
+              ₦{metrics.expectedToday.toLocaleString()}
+            </p>
+          </div>
+          <div className="card p-4">
+            <p className="text-xs text-slate-400">Realised today</p>
+            <p className="text-xl font-bold text-slate-900 mt-1">
+              ₦{metrics.realisedToday.toLocaleString()}
+            </p>
+          </div>
+        </div>
+
+        <div className="card p-5">
+          <h3 className="text-sm font-semibold text-slate-900 mb-3">
+            Branch performance (14 days)
+          </h3>
+          <TrendChart data={metrics.series} height={180} />
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="card p-3">
+            <p className="text-xs text-slate-400">Customers</p>
+            <p className="text-lg font-bold text-slate-900">{branch.customerCount}</p>
+          </div>
+          <div className="card p-3">
+            <p className="text-xs text-slate-400">Groups</p>
+            <p className="text-lg font-bold text-slate-900">{branch.groupCount}</p>
+          </div>
+          <div className="card p-3">
+            <p className="text-xs text-slate-400">Loans</p>
+            <p className="text-lg font-bold text-slate-900">{branch.loanCount}</p>
+          </div>
+        </div>
+
+        {/* Provider setup — vision §4 */}
+        {showProvider && (
+          <ProviderSetup
+            branchId={branch.id}
+            branchName={branch.name}
+            existing={provider}
+          />
+        )}
+
+        {/* Workers — vision §5 */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-slate-900">Workers</h2>
+            <button
+              onClick={() => {
+                setShowCreate(true);
+                setCreatedPassword(null);
+                setError("");
+              }}
+              className="btn-primary text-sm py-2.5 px-4"
+            >
+              <UserPlus className="w-4 h-4" /> Create worker
             </button>
           </div>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {workers.map((w, i) => (
-              <motion.div
-                key={w.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }}
-                className="card p-5 hover:border-slate-200 transition-colors"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center">
-                      <User className="w-5 h-5 text-sky-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-slate-900">{w.name}</h3>
-                      <p className="text-xs text-slate-500">{w.role === "BM" ? "Branch Manager" : "Collection Officer"}</p>
-                    </div>
-                  </div>
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusColor(w.accountStatus)}`}>
-                    {w.accountStatus}
-                  </span>
-                </div>
-                <p className="text-sm text-slate-500 flex items-center gap-1.5 mb-3">
-                  <Phone className="w-3.5 h-3.5" /> {w.phone}
-                </p>
-                <div className="flex gap-3 text-xs text-slate-500 mb-4">
-                  <span>{w.customerCount} customers</span>
-                  <span>·</span>
-                  <span>{w.groupCount} groups</span>
-                  <span>·</span>
-                  <span>{w.loanCount} loans</span>
-                </div>
-                <div className="flex gap-2 pt-3 border-t border-slate-200/80">
-                  {w.accountStatus === "ACTIVE" && (
-                    <>
-                      <button
-                        onClick={() => handleWorkerAction(w.id, "suspend")}
-                        disabled={!!actionLoading}
-                        className="flex-1 text-xs py-1.5 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
-                      >
-                        Suspend
-                      </button>
-                      <button
-                        onClick={() => handleWorkerAction(w.id, "deactivate")}
-                        disabled={!!actionLoading}
-                        className="flex-1 text-xs py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20"
-                      >
-                        Deactivate
-                      </button>
-                    </>
-                  )}
-                  {(w.accountStatus === "SUSPENDED" || w.accountStatus === "DEACTIVATED") && (
-                    <button
-                      onClick={() => handleWorkerAction(w.id, "reactivate")}
-                      disabled={!!actionLoading}
-                      className="flex-1 text-xs py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
-                    >
-                      Reactivate
-                    </button>
-                  )}
+
+          {workers.length === 0 ? (
+            <div className="card p-12 text-center">
+              <Users className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+              <h3 className="font-semibold text-slate-900 mb-1">No workers yet</h3>
+              <p className="text-sm text-slate-500 mb-4">
+                Create a Branch Manager or Collection Officer for this branch.
+              </p>
+              <button onClick={() => setShowCreate(true)} className="btn-primary">
+                <UserPlus className="w-4 h-4" /> Create worker
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {workers.map((w) => (
+                <div
+                  key={w.id}
+                  className="card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                >
                   <button
                     onClick={() => router.push(`/company/workers/${w.id}`)}
-                    className="flex-1 text-xs py-1.5 rounded-lg bg-slate-800 text-slate-600 hover:bg-slate-700"
+                    className="text-left min-w-0 flex-1"
                   >
-                    View Full
+                    <p className="font-semibold text-slate-900">{w.name}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {w.role} · {w.phone} · {w.accountStatus}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {w.customerCount} customers · {w.groupCount} groups · {w.loanCount} loans
+                    </p>
                   </button>
+                  <div className="flex gap-1 shrink-0">
+                    {w.accountStatus === "ACTIVE" && (
+                      <button
+                        onClick={() => setWorkerStatus(w.id, "SUSPENDED")}
+                        disabled={actionId === w.id}
+                        className="btn-ghost text-xs"
+                        title="Suspend"
+                      >
+                        <Pause className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {w.accountStatus === "SUSPENDED" && (
+                      <button
+                        onClick={() => setWorkerStatus(w.id, "ACTIVE")}
+                        disabled={actionId === w.id}
+                        className="btn-ghost text-xs"
+                        title="Reactivate"
+                      >
+                        <Play className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {w.accountStatus !== "DEACTIVATED" && (
+                      <button
+                        onClick={() => setWorkerStatus(w.id, "DEACTIVATED")}
+                        disabled={actionId === w.id}
+                        className="btn-ghost text-xs text-red-600"
+                        title="Deactivate"
+                      >
+                        <Ban className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </main>
 
-      {/* Create Worker Modal */}
-      {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => !creating && setShowCreate(false)}>
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-slate-900 mb-5">
-              {createdPassword ? "Worker Created" : "Create Worker"}
-            </h3>
-            {createdPassword ? (
-              <div className="space-y-4">
-                <p className="text-sm text-emerald-400">Worker account created successfully.</p>
-                <div>
-                  <label className="label">Temporary Password</label>
-                  <input readOnly value={createdPassword} className="input font-mono text-amber-300" />
+      <AnimatePresence>
+        {showCreate && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            onClick={() => !creating && setShowCreate(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              className="card-elevated w-full max-w-md p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {createdPassword ? (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-slate-900">Worker created</h3>
+                  <p className="text-sm text-slate-500">
+                    Share the temporary password. Worker signs in through the branch URL.
+                  </p>
+                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 text-sm space-y-2">
+                    <p>
+                      <span className="text-slate-400">Branch URL</span>
+                      <br />
+                      <span className="font-medium break-all">{branch.branchUrl}</span>
+                    </p>
+                    <p>
+                      <span className="text-slate-400">Temporary password</span>
+                      <br />
+                      <span className="font-mono font-medium">{createdPassword}</span>
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() =>
+                        copyText(
+                          "pw",
+                          `Branch: ${branch.branchUrl}\nPassword: ${createdPassword}`
+                        )
+                      }
+                      className="btn-secondary flex-1"
+                    >
+                      {copied === "pw" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      Copy
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowCreate(false);
+                        setCreatedPassword(null);
+                      }}
+                      className="btn-primary flex-1"
+                    >
+                      Done
+                    </button>
+                  </div>
                 </div>
-                <p className="text-xs text-slate-500">Give this password to the worker. They log in via the branch URL.</p>
-                <button onClick={() => { setShowCreate(false); setCreatedPassword(null); }} className="btn-primary w-full">Done</button>
-              </div>
-            ) : (
-              <form onSubmit={handleCreateWorker} className="space-y-4">
-                <div>
-                  <label className="label">Role</label>
-                  <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="input">
-                    <option value="CO">Collection Officer (CO)</option>
-                    <option value="BM">Branch Manager (BM)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="label">Worker Name</label>
-                  <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input" placeholder="Full name" />
-                </div>
-                <div>
-                  <label className="label">Phone Number</label>
-                  <input required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="input" placeholder="080..." />
-                </div>
-                <div>
-                  <label className="label">Passport</label>
-                  <input required value={form.passport} onChange={(e) => setForm({ ...form, passport: e.target.value })} className="input" placeholder="Passport number or reference" />
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setShowCreate(false)} className="btn-secondary flex-1">Cancel</button>
-                  <button type="submit" disabled={creating} className="btn-primary flex-1">
-                    {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                    Create
-                  </button>
-                </div>
-              </form>
-            )}
-          </motion.div>
-        </div>
-      )}
+              ) : (
+                <>
+                  <h3 className="text-lg font-bold text-slate-900 mb-5">Create worker</h3>
+                  <form onSubmit={handleCreateWorker} className="space-y-3">
+                    <div>
+                      <label className="label">Role</label>
+                      <select
+                        value={form.role}
+                        onChange={(e) => setForm({ ...form, role: e.target.value })}
+                        className="input"
+                      >
+                        <option value="BM">Branch Manager</option>
+                        <option value="CO">Collection Officer</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label">Name</label>
+                      <input
+                        required
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        className="input"
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Phone</label>
+                      <input
+                        required
+                        value={form.phone}
+                        onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                        className="input"
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Passport</label>
+                      <input
+                        required
+                        value={form.passport}
+                        onChange={(e) => setForm({ ...form, passport: e.target.value })}
+                        className="input"
+                      />
+                    </div>
+                    {error && <p className="text-sm text-red-600">{error}</p>}
+                    <div className="flex gap-2 pt-2">
+                      <button type="button" onClick={() => setShowCreate(false)} className="btn-secondary flex-1">
+                        Cancel
+                      </button>
+                      <button type="submit" disabled={creating} className="btn-primary flex-1">
+                        {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                        Create
+                      </button>
+                    </div>
+                  </form>
+                </>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

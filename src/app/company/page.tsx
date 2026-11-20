@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { CompanyDashboard } from "@/components/company/CompanyDashboard";
+import { getCompanyCollectionMetrics } from "@/lib/company-metrics";
 
 export default async function CompanyPage() {
   const session = await getSession();
@@ -29,10 +30,11 @@ export default async function CompanyPage() {
     redirect("/company/login");
   }
 
-  // Force password change if needed
   if (company.mustChangePassword) {
     redirect("/company/change-password");
   }
+
+  const metrics = await getCompanyCollectionMetrics(company.id);
 
   return (
     <CompanyDashboard
@@ -57,6 +59,7 @@ export default async function CompanyPage() {
         customerCount: company._count.customers,
         loanCount: company._count.loans,
       }}
+      metrics={metrics}
     />
   );
 }

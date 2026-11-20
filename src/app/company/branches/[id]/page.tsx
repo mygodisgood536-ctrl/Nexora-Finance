@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { BranchDetail } from "@/components/company/BranchDetail";
+import { getBranchCollectionMetrics } from "@/lib/company-metrics";
 
 export default async function BranchPage({
   params,
@@ -35,6 +36,10 @@ export default async function BranchPage({
         },
         orderBy: { createdAt: "desc" },
       },
+      providerConnections: {
+        where: { isActive: true },
+        take: 1,
+      },
       _count: {
         select: { customers: true, groups: true, loans: true },
       },
@@ -42,6 +47,19 @@ export default async function BranchPage({
   });
 
   if (!branch) notFound();
+
+  const metrics = await getBranchCollectionMetrics(branch.id, session.companyId);
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://nexorafinancecom.vercel.app";
+  const branchUrl = `${branch.slug}.${branch.company.slug}.nexora.app`;
+  const branchLoginPath = `${baseUrl}/branch/login`;
+
+  const provider = branch.providerConnections[0]
+    ? {
+        providerCode: branch.providerConnections[0].providerCode,
+        connectionStatus: branch.providerConnections[0].connectionStatus,
+        webhookUrl: branch.providerConnections[0].webhookUrl,
+      }
+    : null;
 
   return (
     <BranchDetail
@@ -55,6 +73,8 @@ export default async function BranchPage({
         customerCount: branch._count.customers,
         groupCount: branch._count.groups,
         loanCount: branch._count.loans,
+        branchUrl,
+        branchLoginPath,
       }}
       workers={branch.workers.map((w) => ({
         id: w.id,
@@ -67,6 +87,8 @@ export default async function BranchPage({
         loanCount: w._count.ownedLoans,
         createdAt: w.createdAt.toISOString(),
       }))}
+      metrics={metrics}
+      provider={provider}
     />
   );
 }
