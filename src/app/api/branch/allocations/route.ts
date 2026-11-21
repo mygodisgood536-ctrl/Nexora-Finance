@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { roundToKobo } from "@/lib/money";
+import { notify, audit } from "@/lib/notifications";
 
 /**
  * CO allocates a verified receipt:
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
     let savingsAlloc = roundToKobo(Number(savingsAllocation));
 
     // Exact tally
-    if (Math.abs(loanAlloc + savingsAlloc - receipt.verifiedAmount) > 0.015) {
+    if (Math.abs(loanAlloc + savingsAlloc - receipt.verifiedAmount) > 0.005) {
       return NextResponse.json({
         error: "Loan Allocation + Savings Allocation must exactly equal the receipt amount",
       }, { status: 400 });
@@ -84,6 +85,23 @@ export async function POST(req: NextRequest) {
         });
       }
 
+      // Instalment satisfaction is recorded separately from the immutable
+      // due-date/principal/interest values: only the status moves to SATISFIED.
+      if (receipt.loanId && loanAlloc > 0) {
+        let remaining = loanAlloc;
+        const rows = await tx.repaymentScheduleRow.findMany({
+          where: { loanId: receipt.loanId, status: "PENDING", dueDate: { lte: receipt.receivedAt } },
+          orderBy: { dueDate: "asc" },
+        });
+        for (const row of rows) {
+          if (remaining <= 0) break;
+          if (remaining + 0.005 >= row.totalDue) {
+            await tx.repaymentScheduleRow.update({ where: { id: row.id }, data: { status: "SATISFIED" } });
+            remaining = Math.round((remaining - row.totalDue) * 100) / 100;
+          }
+        }
+      }
+
       if (savingsAlloc > 0) {
         const newBalance = roundToKobo(receipt.customer.savingsBalance + savingsAlloc);
         await tx.customer.update({
@@ -102,6 +120,29 @@ export async function POST(req: NextRequest) {
 
       return allocation;
     });
+
+    await notify({
+      companyId: receipt.customer.companyId,
+      branchId: receipt.customer.branchId,
+      workerId: session.workerId,
+      customerId: receipt.customerId,
+      title: "Payment posted",
+      message: `₦${receipt.verifiedAmount.toLocaleString()} allocated: ₦${loanAlloc.toLocaleString()} to loan, ₦${savingsAlloc.toLocaleString()} to savings for ${receipt.customer.fullName}.`,
+      type: "ALLOCATION",
+    }).catch(() => undefined);
+    await audit({
+      companyId: receipt.customer.companyId,
+      branchId: receipt.customer.branchId,
+      actorIdentityId: session.identityId,
+      actorRole: session.role,
+      action: "ALLOCATION_POSTED",
+      entity: "PaymentAllocation",
+      entityId: result.id,
+      details: { receiptId, loanAlloc, savingsAlloc },
+    }).catch(() => undefined);
+    void import("@/lib/virtual-account").then((m) =>
+      m.pollVirtualAccounts(receipt.customer.companyId).catch(() => undefined)
+    );
 
     return NextResponse.json({ success: true, allocationId: result.id });
   } catch (error) {

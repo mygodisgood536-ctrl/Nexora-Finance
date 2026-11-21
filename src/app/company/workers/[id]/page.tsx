@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { WorkerDetail } from "@/components/company/WorkerDetail";
+import { getPerformance } from "@/lib/analytics";
 
 export default async function WorkerDetailPage({
   params,
@@ -62,6 +63,7 @@ export default async function WorkerDetailPage({
   if (!worker) notFound();
 
   const currentIdentity = worker.identities.find((i) => i.identityStatus === "ACTIVE");
+  const performance = await getPerformance({ companyId: session.companyId, branchId: worker.branchId, workerId: worker.id });
 
   return (
     <WorkerDetail
@@ -109,6 +111,7 @@ export default async function WorkerDetailPage({
         total: l.totalContractual,
         activatedAt: l.activatedAt.toISOString(),
       }))}
+      performance={performance}
     />
   );
 }

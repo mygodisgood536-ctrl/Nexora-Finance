@@ -16,7 +16,9 @@ import {
   Copy,
   Check,
   CreditCard,
+  KeyRound,
 } from "lucide-react";
+import { PassportUpload } from "@/components/ui/PassportUpload";
 import { TrendChart, ChartPoint } from "@/components/ui/TrendChart";
 import { ProviderSetup } from "@/components/company/ProviderSetup";
 
@@ -29,6 +31,10 @@ type Worker = {
   customerCount: number;
   groupCount: number;
   loanCount: number;
+  expectedToday: number;
+  realisedToday: number;
+  historicalExpected: number;
+  historicalRealised: number;
   createdAt: string;
 };
 
@@ -44,19 +50,29 @@ type Props = {
     groupCount: number;
     loanCount: number;
     branchUrl: string;
+    branchHost: string;
     branchLoginPath: string;
   };
   workers: Worker[];
   metrics: {
     expectedToday: number;
     realisedToday: number;
+    historicalExpected: number;
+    historicalRealised: number;
     series: ChartPoint[];
   };
   provider: {
+    id: string;
     providerCode: string;
     connectionStatus: string;
     webhookUrl: string | null;
+    isActive: boolean;
+    lastHealthCheck: string | null;
   } | null;
+  providerHistory: Array<{
+    id: string; providerCode: string; connectionStatus: string;
+    isActive: boolean; webhookUrl: string | null; createdAt: string;
+  }>;
 };
 
 /**
@@ -64,7 +80,7 @@ type Props = {
  * Charts, branch URL, provider management, workers.
  * Company inspects without branch-worker login.
  */
-export function BranchDetail({ branch, workers, metrics, provider }: Props) {
+export function BranchDetail({ branch, workers, metrics, provider, providerHistory }: Props) {
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -76,6 +92,7 @@ export function BranchDetail({ branch, workers, metrics, provider }: Props) {
   });
   const [createdPassword, setCreatedPassword] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
   const [showProvider, setShowProvider] = useState(false);
@@ -113,14 +130,18 @@ export function BranchDetail({ branch, workers, metrics, provider }: Props) {
     }
   }
 
-  async function setWorkerStatus(id: string, accountStatus: string) {
+  async function setWorkerStatus(id: string, action: "suspend" | "reactivate" | "deactivate" | "reset_password") {
     setActionId(id);
     try {
-      await fetch(`/api/company/workers/${id}`, {
+      const res = await fetch(`/api/company/workers/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accountStatus }),
+        body: JSON.stringify({ action }),
       });
+      const data = await res.json().catch(() => ({}));
+      if (data.tempPassword) {
+        setNotice(`New temporary password for this worker: ${data.tempPassword}`);
+      }
       router.refresh();
     } finally {
       setActionId(null);
@@ -151,14 +172,14 @@ export function BranchDetail({ branch, workers, metrics, provider }: Props) {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-6">
+        {notice && <div className="card p-3 text-sm text-sky-700 bg-sky-50 border-sky-100">{notice}</div>}
+
         {/* Branch URL — vision: generated on create, available to copy */}
         <div className="card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs text-slate-400 mb-0.5">Branch URL</p>
+            <p className="text-xs text-slate-400 mb-0.5">Branch URL — staff sign-in</p>
             <p className="text-sm font-medium text-slate-900 break-all">{branch.branchUrl}</p>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Staff sign in at {branch.branchLoginPath} using this branch identity
-            </p>
+            <p className="text-[11px] text-slate-400 mt-1">Branch host: {branch.branchHost}</p>
           </div>
           <button
             onClick={() => copyText("url", branch.branchUrl)}
@@ -170,18 +191,22 @@ export function BranchDetail({ branch, workers, metrics, provider }: Props) {
         </div>
 
         {/* Today metrics + chart — vision §3.4 */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="card p-4">
             <p className="text-xs text-slate-400">Expected today</p>
-            <p className="text-xl font-bold text-slate-900 mt-1">
-              ₦{metrics.expectedToday.toLocaleString()}
-            </p>
+            <p className="text-xl font-bold text-slate-900 mt-1">₦{metrics.expectedToday.toLocaleString()}</p>
           </div>
           <div className="card p-4">
             <p className="text-xs text-slate-400">Realised today</p>
-            <p className="text-xl font-bold text-slate-900 mt-1">
-              ₦{metrics.realisedToday.toLocaleString()}
-            </p>
+            <p className="text-xl font-bold text-slate-900 mt-1">₦{metrics.realisedToday.toLocaleString()}</p>
+          </div>
+          <div className="card p-4">
+            <p className="text-xs text-slate-400">Historical expected</p>
+            <p className="text-xl font-bold text-slate-900 mt-1">₦{(metrics.historicalExpected || 0).toLocaleString()}</p>
+          </div>
+          <div className="card p-4">
+            <p className="text-xs text-slate-400">Historical realised</p>
+            <p className="text-xl font-bold text-slate-900 mt-1">₦{(metrics.historicalRealised || 0).toLocaleString()}</p>
           </div>
         </div>
 
@@ -213,6 +238,7 @@ export function BranchDetail({ branch, workers, metrics, provider }: Props) {
             branchId={branch.id}
             branchName={branch.name}
             existing={provider}
+            history={providerHistory}
           />
         )}
 
@@ -261,11 +287,14 @@ export function BranchDetail({ branch, workers, metrics, provider }: Props) {
                     <p className="text-xs text-slate-400">
                       {w.customerCount} customers · {w.groupCount} groups · {w.loanCount} loans
                     </p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Today: ₦{w.expectedToday.toLocaleString()} expected · ₦{w.realisedToday.toLocaleString()} realised
+                    </p>
                   </button>
                   <div className="flex gap-1 shrink-0">
                     {w.accountStatus === "ACTIVE" && (
                       <button
-                        onClick={() => setWorkerStatus(w.id, "SUSPENDED")}
+                        onClick={() => setWorkerStatus(w.id, "suspend")}
                         disabled={actionId === w.id}
                         className="btn-ghost text-xs"
                         title="Suspend"
@@ -275,7 +304,7 @@ export function BranchDetail({ branch, workers, metrics, provider }: Props) {
                     )}
                     {w.accountStatus === "SUSPENDED" && (
                       <button
-                        onClick={() => setWorkerStatus(w.id, "ACTIVE")}
+                        onClick={() => setWorkerStatus(w.id, "reactivate")}
                         disabled={actionId === w.id}
                         className="btn-ghost text-xs"
                         title="Reactivate"
@@ -285,7 +314,7 @@ export function BranchDetail({ branch, workers, metrics, provider }: Props) {
                     )}
                     {w.accountStatus !== "DEACTIVATED" && (
                       <button
-                        onClick={() => setWorkerStatus(w.id, "DEACTIVATED")}
+                        onClick={() => setWorkerStatus(w.id, "deactivate")}
                         disabled={actionId === w.id}
                         className="btn-ghost text-xs text-red-600"
                         title="Deactivate"
@@ -293,6 +322,14 @@ export function BranchDetail({ branch, workers, metrics, provider }: Props) {
                         <Ban className="w-3.5 h-3.5" />
                       </button>
                     )}
+                    <button
+                      onClick={() => setWorkerStatus(w.id, "reset_password")}
+                      disabled={actionId === w.id}
+                      className="btn-ghost text-xs"
+                      title="Reset password"
+                    >
+                      <KeyRound className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -389,15 +426,7 @@ export function BranchDetail({ branch, workers, metrics, provider }: Props) {
                         className="input"
                       />
                     </div>
-                    <div>
-                      <label className="label">Passport</label>
-                      <input
-                        required
-                        value={form.passport}
-                        onChange={(e) => setForm({ ...form, passport: e.target.value })}
-                        className="input"
-                      />
-                    </div>
+                    <PassportUpload value={form.passport} onChange={(dataUrl) => setForm({ ...form, passport: dataUrl })} label="Worker passport" />
                     {error && <p className="text-sm text-red-600">{error}</p>}
                     <div className="flex gap-2 pt-2">
                       <button type="button" onClick={() => setShowCreate(false)} className="btn-secondary flex-1">

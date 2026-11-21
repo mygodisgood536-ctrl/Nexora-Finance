@@ -17,6 +17,14 @@ import {
   Mail,
   X,
   ExternalLink,
+  Activity,
+  GitBranch,
+  Wallet,
+  AlertTriangle,
+  ShieldCheck,
+  Clock,
+  CreditCard,
+  Users,
 } from "lucide-react";
 
 type Company = {
@@ -29,9 +37,18 @@ type Company = {
   createdAt: string;
   branchCount: number;
   workerCount: number;
+  customerCount: number;
+  loanCount: number;
 };
 
-type Props = { companies: Company[] };
+type Health = {
+  companies: number; activeCompanies: number; suspended: number; deactivated: number;
+  branches: number; workers: number; customers: number; loans: number; activeLoans: number;
+  totalCollections: number; pendingAllocations: number; failedProviders: number;
+  webhookEvents: number; openWarnings: number; checkedAt: string;
+};
+
+type Props = { companies: Company[]; health: Health };
 
 function accessUrl(slug: string) {
   const base =
@@ -46,7 +63,7 @@ function accessUrl(slug: string) {
  * Platform health, companies list, create, suspend, deactivate, reactivate.
  * Click company to inspect URL, status actions, recopy credentials path.
  */
-export function OwnerDashboard({ companies: initial }: Props) {
+export function OwnerDashboard({ companies: initial, health }: Props) {
   const router = useRouter();
   const [companies, setCompanies] = useState(initial);
   const [showCreate, setShowCreate] = useState(false);
@@ -102,6 +119,8 @@ export function OwnerDashboard({ companies: initial }: Props) {
           createdAt: new Date().toISOString(),
           branchCount: 0,
           workerCount: 0,
+          customerCount: 0,
+          loanCount: 0,
         },
         ...prev,
       ]);
@@ -170,8 +189,44 @@ export function OwnerDashboard({ companies: initial }: Props) {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        <div className="mb-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+        {/* Platform health — vision §2 */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">Platform health</h2>
+              <p className="text-sm text-slate-500">Live state of the shared Nexora infrastructure.</p>
+            </div>
+            <span className="flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-full font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Operational
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {[
+              { label: "Companies", value: health.companies, icon: Building2 },
+              { label: "Active / Suspended", value: `${health.activeCompanies} / ${health.suspended}`, icon: ShieldCheck },
+              { label: "Branches", value: health.branches, icon: GitBranch },
+              { label: "Workers", value: health.workers, icon: Users },
+              { label: "Customers", value: health.customers, icon: Users },
+              { label: "Loans (active)", value: `${health.loans} (${health.activeLoans})`, icon: CreditCard },
+              { label: "Collections", value: `₦${health.totalCollections.toLocaleString()}`, icon: Wallet },
+              { label: "Pending allocations", value: health.pendingAllocations, icon: Clock },
+              { label: "Failed providers", value: health.failedProviders, icon: AlertTriangle },
+              { label: "Webhook events", value: health.webhookEvents, icon: Activity },
+              { label: "Open warnings", value: health.openWarnings, icon: AlertTriangle },
+              { label: "Deactivated", value: health.deactivated, icon: Ban },
+            ].map((h, i) => (
+              <motion.div key={h.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }} className="card p-4">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-3 bg-slate-100 text-slate-500"><h.icon className="w-4 h-4" /></div>
+                <p className="text-lg font-bold text-slate-900 truncate">{h.value}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{h.label}</p>
+              </motion.div>
+            ))}
+          </div>
+          <p className="text-[11px] text-slate-400 mt-3 flex items-center gap-1.5"><Clock className="w-3 h-3" /> Last checked {new Date(health.checkedAt).toLocaleString()}</p>
+        </section>
+
+        <div>
           <h2 className="text-2xl font-bold text-slate-900">Companies</h2>
           <p className="text-sm text-slate-500 mt-1">
             Create a company to provision its workspace. Click a company to manage it.

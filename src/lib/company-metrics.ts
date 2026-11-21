@@ -72,12 +72,20 @@ export async function getCompanyCollectionMetrics(companyId: string) {
     realisedToday,
     series,
     trendUp,
-    warnings: warnings.map((w: any) => ({
-      id: w.id,
-      type: w.type,
-      message: w.message,
-      severity: w.severity,
-      createdAt: w.createdAt?.toISOString?.() || String(w.createdAt),
+    historicalExpected: series.reduce((s, p) => s + p.expected, 0),
+    historicalRealised: series.reduce((s, p) => s + p.realised, 0),
+    warnings: await Promise.all(warnings.map(async (w: any) => {
+      const branchName = w.branchId
+        ? (await prisma.branch.findUnique({ where: { id: w.branchId }, select: { name: true } }))?.name
+        : undefined;
+      return {
+        id: w.id,
+        type: w.type,
+        message: w.message,
+        severity: w.severity,
+        branchName,
+        createdAt: w.createdAt?.toISOString?.() || String(w.createdAt),
+      };
     })),
   };
 }
@@ -133,6 +141,8 @@ export async function getBranchCollectionMetrics(branchId: string, companyId: st
   return {
     expectedToday: todayExpected._sum.totalDue || 0,
     realisedToday: todayRealised._sum.loanAllocation || 0,
+    historicalExpected: series.reduce((s, p) => s + p.expected, 0),
+    historicalRealised: series.reduce((s, p) => s + p.realised, 0),
     series,
   };
 }

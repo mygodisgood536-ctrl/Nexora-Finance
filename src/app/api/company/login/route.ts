@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
       companyName: company.name,
       companySlug: company.slug,
       name: company.name,
+      sessionVersion: company.sessionVersion,
     });
 
     await setSessionCookie(token);

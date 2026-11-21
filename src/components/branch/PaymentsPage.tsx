@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, Wallet, Loader2, Check } from "lucide-react";
+import { ArrowLeft, Wallet, Loader2, Check, Banknote } from "lucide-react";
 import { formatNaira, roundToKobo } from "@/lib/money";
 
 type Receipt = {
@@ -15,13 +15,33 @@ type Receipt = {
   loan: { id: string; outstanding: number; total: number } | null;
 };
 
-export function PaymentsPage({ receipts }: { receipts: Receipt[] }) {
+export function PaymentsPage({ receipts, customers }: { receipts: Receipt[]; customers: Array<{ id: string; name: string; loanId: string | null }> }) {
   const router = useRouter();
   const [active, setActive] = useState<Receipt | null>(null);
   const [loanAlloc, setLoanAlloc] = useState("");
   const [savingsAlloc, setSavingsAlloc] = useState("");
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState("");
+  const [showCash, setShowCash] = useState(false);
+  const [cashCustomer, setCashCustomer] = useState("");
+  const [cashAmount, setCashAmount] = useState("");
+  const [cashLoan, setCashLoan] = useState("");
+
+  async function recordCash(e: React.FormEvent) {
+    e.preventDefault();
+    setPosting(true); setError("");
+    try {
+      const res = await fetch("/api/branch/manual-cash", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId: cashCustomer, amount: Number(cashAmount), loanId: cashLoan || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Failed to record cash payment"); setPosting(false); return; }
+      setShowCash(false); setCashCustomer(""); setCashAmount(""); setCashLoan("");
+      router.refresh();
+    } catch { setError("Something went wrong"); }
+    finally { setPosting(false); }
+  }
 
   function openAllocate(r: Receipt) {
     setActive(r);
@@ -73,6 +93,7 @@ export function PaymentsPage({ receipts }: { receipts: Receipt[] }) {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-lg font-semibold text-slate-900">Payments Awaiting Allocation</h1>
+          <button onClick={() => setShowCash(true)} className="ml-auto btn-primary text-xs py-2 px-3 flex items-center gap-1"><Banknote className="w-3.5 h-3.5" /> Record cash payment</button>
         </div>
       </header>
 
@@ -161,6 +182,31 @@ export function PaymentsPage({ receipts }: { receipts: Receipt[] }) {
                 {posting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Post Allocation"}
               </button>
             </div>
+          </motion.div>
+        </div>
+      )}
+
+      {showCash && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => !posting && setShowCash(false)}>
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-slate-900 mb-1">Record Manual Cash Payment</h3>
+            <p className="text-xs text-slate-500 mb-5">Recorded as MANUAL_CASH — distinct from provider webhooks. It enters the same allocation workflow.</p>
+            <form onSubmit={recordCash} className="space-y-4">
+              <div>
+                <label className="label">Customer</label>
+                <select value={cashCustomer} onChange={(e) => { setCashCustomer(e.target.value); const c = customers.find((x) => x.id === e.target.value); setCashLoan(c?.loanId || ""); }} className="input" required>
+                  <option value="">Select customer</option>
+                  {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div><label className="label">Amount (₦)</label><input type="number" min="0.01" step="0.01" value={cashAmount} onChange={(e) => setCashAmount(e.target.value)} className="input" required /></div>
+              <div><label className="label">Active loan (optional)</label><select value={cashLoan} onChange={(e) => setCashLoan(e.target.value)} className="input"><option value="">None</option>{cashCustomer && customers.find((c) => c.id === cashCustomer)?.loanId && <option value={customers.find((c) => c.id === cashCustomer)!.loanId!}>Active loan</option>}</select></div>
+              {error && <p className="text-sm text-red-500">{error}</p>}
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setShowCash(false)} className="btn-secondary flex-1">Cancel</button>
+                <button type="submit" disabled={posting} className="btn-primary flex-1">{posting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Record & Queue"}</button>
+              </div>
+            </form>
           </motion.div>
         </div>
       )}

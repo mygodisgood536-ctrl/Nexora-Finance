@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
       workerId: identity.worker.id,
       identityId: identity.id,
       name: identity.name,
+      sessionVersion: identity.worker.sessionVersion,
     });
 
     await setSessionCookie(token);

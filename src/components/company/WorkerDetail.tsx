@@ -14,6 +14,8 @@ import {
   Loader2,
   History,
 } from "lucide-react";
+import { PassportUpload } from "@/components/ui/PassportUpload";
+import { TrendChart } from "@/components/ui/TrendChart";
 
 type Props = {
   worker: {
@@ -60,9 +62,20 @@ type Props = {
     total: number;
     activatedAt: string;
   }>;
+  performance: {
+    expectedToday: number;
+    realisedToday: number;
+    difference: number;
+    achievementPct: number;
+    historicalExpected: number;
+    historicalRealised: number;
+    trend: Array<{ label: string; expected: number; realised: number }>;
+    direction: string;
+    changePct: number;
+  };
 };
 
-export function WorkerDetail({ worker, identities, customers, groups, loans }: Props) {
+export function WorkerDetail({ worker, identities, customers, groups, loans, performance }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<"overview" | "customers" | "groups" | "loans" | "history">("overview");
   const [showReplace, setShowReplace] = useState(false);
@@ -174,12 +187,33 @@ export function WorkerDetail({ worker, identities, customers, groups, loans }: P
 
         {/* Tab content */}
         {tab === "overview" && (
-          <div className="card p-6">
-            <p className="text-slate-500 text-sm">
-              Full portfolio owned by this worker account. All customers, groups and loans currently under{" "}
-              <span className="text-slate-900">{worker.currentName}</span>. Historical actions remain attributed to the
-              identity that performed them.
-            </p>
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {[
+                { l: "Expected today", v: `₦${performance.expectedToday.toLocaleString()}` },
+                { l: "Realised today", v: `₦${performance.realisedToday.toLocaleString()}` },
+                { l: "Difference", v: `₦${performance.difference.toLocaleString()}` },
+                { l: "Achievement", v: `${performance.achievementPct}%` },
+                { l: "Historical expected", v: `₦${performance.historicalExpected.toLocaleString()}` },
+                { l: "Historical realised", v: `₦${performance.historicalRealised.toLocaleString()}` },
+              ].map((m) => (
+                <div key={m.l} className="card p-4">
+                  <p className="text-xs text-slate-400">{m.l}</p>
+                  <p className="text-lg font-bold text-slate-900 mt-1">{m.v}</p>
+                </div>
+              ))}
+            </div>
+            <div className="card p-5">
+              <h3 className="text-sm font-semibold text-slate-900 mb-3">
+                Performance trend · {performance.direction} {performance.changePct}%
+              </h3>
+              <TrendChart data={performance.trend} height={160} />
+            </div>
+            <div className="card p-6">
+              <p className="text-slate-500 text-sm">
+                Full portfolio owned by this worker account. Historical actions remain attributed to the identity that performed them. A replacement inherits the portfolio, not personal performance history.
+              </p>
+            </div>
           </div>
         )}
 
@@ -289,10 +323,7 @@ export function WorkerDetail({ worker, identities, customers, groups, loans }: P
                   <label className="label">Phone</label>
                   <input required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="input" />
                 </div>
-                <div>
-                  <label className="label">Passport</label>
-                  <input required value={form.passport} onChange={(e) => setForm({ ...form, passport: e.target.value })} className="input" />
-                </div>
+                <PassportUpload value={form.passport} onChange={(dataUrl) => setForm({ ...form, passport: dataUrl })} label="Replacement passport" />
                 <div className="flex gap-3">
                   <button type="button" onClick={() => setShowReplace(false)} className="btn-secondary flex-1">Cancel</button>
                   <button type="submit" disabled={replacing} className="btn-primary flex-1">

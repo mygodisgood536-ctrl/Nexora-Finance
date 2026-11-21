@@ -33,9 +33,11 @@ type Branch = {
 type Metrics = {
   expectedToday: number;
   realisedToday: number;
+  historicalExpected: number;
+  historicalRealised: number;
   series: ChartPoint[];
   trendUp: boolean | null;
-  warnings: Array<{ id: string; type: string; message: string; severity: string; createdAt: string }>;
+  warnings: Array<{ id: string; type: string; message: string; severity: string; branchName?: string; createdAt: string }>;
 };
 
 type Props = {
@@ -68,6 +70,7 @@ export function CompanyDashboard({ company, branches, stats, metrics }: Props) {
     id: string;
     name: string;
     url: string;
+    host: string;
   } | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -96,7 +99,8 @@ export function CompanyDashboard({ company, branches, stats, metrics }: Props) {
       setCreatedBranch({
         id: data.branch.id,
         name: data.branch.name,
-        url: data.branch.url || `${data.branch.slug}.${company.slug}.nexora.app`,
+        url: data.branch.url,
+        host: data.branch.host || `${data.branch.slug}.${company.slug}.nexora.app`,
       });
       setForm({ name: "", address: "" });
       setCreating(false);
@@ -143,6 +147,8 @@ export function CompanyDashboard({ company, branches, stats, metrics }: Props) {
           {[
             { label: "Expected today", value: formatNaira(metrics.expectedToday) },
             { label: "Realised today", value: formatNaira(metrics.realisedToday) },
+            { label: "Historical expected", value: formatNaira(metrics.historicalExpected || 0) },
+            { label: "Historical realised", value: formatNaira(metrics.historicalRealised || 0) },
             {
               label: "Achievement",
               value: `${achievement}%`,
@@ -172,21 +178,30 @@ export function CompanyDashboard({ company, branches, stats, metrics }: Props) {
           <TrendChart data={metrics.series} height={200} />
         </div>
 
-        {/* Health warnings */}
-        {metrics.warnings.length > 0 && (
-          <div className="card p-5 border-amber-200 bg-amber-50/50">
-            <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-600" /> Company health
-            </h3>
+        {/* Health warnings — vision §3.1 */}
+        <div className={`card p-5 ${metrics.warnings.length > 0 ? "border-amber-200 bg-amber-50/50" : ""}`}>
+          <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+            <AlertTriangle className={`w-4 h-4 ${metrics.warnings.length > 0 ? "text-amber-600" : "text-emerald-500"}`} /> Company health
+          </h3>
+          {metrics.warnings.length === 0 ? (
+            <div className="py-4 text-center">
+              <p className="text-sm text-slate-600">All systems healthy</p>
+              <p className="text-xs text-slate-400 mt-1">No provider, webhook or provisioning warnings.</p>
+            </div>
+          ) : (
             <ul className="space-y-2">
               {metrics.warnings.map((w) => (
-                <li key={w.id} className="text-sm text-slate-700">
-                  {w.message}
+                <li key={w.id} className="text-sm text-slate-700 rounded-xl bg-white/70 border border-amber-100 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-semibold uppercase text-amber-600">{w.type.replace(/_/g, " ")}</span>
+                    {w.branchName && <span className="text-[10px] text-slate-500 bg-white px-1.5 py-0.5 rounded">{w.branchName}</span>}
+                  </div>
+                  <p className="mt-1">{w.message}</p>
                 </li>
               ))}
             </ul>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Stats row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -279,9 +294,15 @@ export function CompanyDashboard({ company, branches, stats, metrics }: Props) {
                   <p className="text-sm text-slate-500">
                     Branch URL for staff login. No password is generated for the branch itself.
                   </p>
-                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 text-sm">
-                    <p className="text-slate-400 text-xs mb-1">Branch URL</p>
-                    <p className="font-medium text-slate-900 break-all">{createdBranch.url}</p>
+                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 text-sm space-y-3">
+                    <div>
+                      <p className="text-slate-400 text-xs mb-1">Branch URL — staff sign-in</p>
+                      <p className="font-medium text-slate-900 break-all">{createdBranch.url}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 text-xs mb-1">Branch host (vision format)</p>
+                      <p className="font-medium text-slate-600 break-all">{createdBranch.host}</p>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <button

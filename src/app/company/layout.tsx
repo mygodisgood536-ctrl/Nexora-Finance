@@ -1,12 +1,5 @@
-import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { ProvisioningPoller } from "@/components/layout/ProvisioningPoller";
 
-export default async function CompanyLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const session = await getSession();
-  // Allow login and change-password without full session checks handled in pages
-  return <>{children}</>;
+export default function CompanyLayout({ children }: { children: React.ReactNode }) {
+  return <><ProvisioningPoller />{children}</>;
 }

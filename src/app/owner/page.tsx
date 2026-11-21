@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { OwnerDashboard } from "@/components/owner/OwnerDashboard";
+import { getOwnerHealth } from "@/lib/analytics";
+
+export const dynamic = "force-dynamic";
 
 export default async function OwnerPage() {
   const session = await getSession();
@@ -10,14 +13,15 @@ export default async function OwnerPage() {
     redirect("/owner/login");
   }
 
-  const companies = await prisma.company.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      _count: {
-        select: { branches: true, workers: true, customers: true },
+  const [companies, health] = await Promise.all([
+    prisma.company.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        _count: { select: { branches: true, workers: true, customers: true, loans: true } },
       },
-    },
-  });
+    }),
+    getOwnerHealth(),
+  ]);
 
   return (
     <OwnerDashboard
@@ -32,7 +36,9 @@ export default async function OwnerPage() {
         branchCount: c._count.branches,
         workerCount: c._count.workers,
         customerCount: c._count.customers,
+        loanCount: c._count.loans,
       }))}
+      health={health}
     />
   );
 }

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { BMDashboard } from "@/components/branch/BMDashboard";
 import { CODashboard } from "@/components/branch/CODashboard";
 import { getCOMetrics, getTodayCollections } from "@/lib/metrics";
+import { getCOFullDashboard, getBMBranchData } from "@/lib/analytics";
 
 export default async function BranchWorkplacePage() {
   const session = await getSession();
@@ -72,10 +73,17 @@ export default async function BranchWorkplacePage() {
       })
     );
 
-    return <BMDashboard base={base} coMetrics={coMetrics} />;
+    const [branchData, coDashboard] = await Promise.all([
+      getBMBranchData(worker.branchId, worker.companyId),
+      getCOFullDashboard(session.workerId, worker.companyId, worker.branchId),
+    ]);
+    return <BMDashboard base={base} coMetrics={coMetrics} branchData={branchData} coDashboard={coDashboard} />;
   }
 
   // CO
-  const today = await getTodayCollections(session.workerId);
-  return <CODashboard base={base} today={today} />;
+  const [today, dashboard] = await Promise.all([
+    getTodayCollections(session.workerId),
+    getCOFullDashboard(session.workerId, worker.companyId, worker.branchId),
+  ]);
+  return <CODashboard base={base} today={today} dashboard={dashboard} />;
 }

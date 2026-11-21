@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { verifyWebhookSignature } from "@/lib/webhook-signature";
 
 /**
  * Branch-specific webhook endpoint:
  * /webhook/{branch_id}/{provider_code}
  *
- * - Verifies provider signature (placeholder for real implementation)
+ * - Verifies provider signature (HMAC/hash, no IP allowlist)
  * - Idempotent on (provider_connection_id, provider_transaction_ref)
  * - Creates AWAITING_ALLOCATION receipt routed to current portfolio owner
  */
@@ -33,8 +34,33 @@ export async function POST(
       return NextResponse.json({ error: "No active provider connection for this branch" }, { status: 404 });
     }
 
-    const payload = await req.json();
-    // Real implementation would verify signature here using connection.webhookSecret
+    const rawBody = await req.text();
+    let payload: any;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+    }
+
+    const verification = verifyWebhookSignature({
+      providerCode,
+      rawBody,
+      headers: req.headers,
+      encryptedCredentials: connection.encryptedCredentials,
+      payload,
+    });
+    if (!verification.valid) {
+      await prisma.operationalWarning.create({
+        data: {
+          companyId: connection.companyId,
+          branchId,
+          type: "WEBHOOK_SIGNATURE_FAILURE",
+          severity: "CRITICAL",
+          message: `Rejected ${providerCode} webhook: ${verification.reason || "invalid signature"}`,
+        },
+      }).catch(() => undefined);
+      return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 });
+    }
 
     const transactionRef =
       payload.transactionReference ||

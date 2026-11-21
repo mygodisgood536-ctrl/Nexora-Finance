@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { customerId, groupId, repaymentMode, requestedAmount, loanPurpose } = await req.json();
+    const { customerId, groupId, repaymentMode, requestedAmount, loanPurpose, loanCycle } = await req.json();
 
     if (!customerId || !repaymentMode || !requestedAmount) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -23,12 +23,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Customer already has an active loan" }, { status: 409 });
     }
 
-    // Verify ownership
+    // Verify ownership and customer status
     const customer = await prisma.customer.findFirst({
       where: { id: customerId, currentOwnerWorkerId: session.workerId },
     });
     if (!customer) {
       return NextResponse.json({ error: "Customer not in your portfolio" }, { status: 403 });
+    }
+    if (customer.customerStatus === "CLOSED") {
+      return NextResponse.json({ error: "Customer is CLOSED and cannot start a new loan application" }, { status: 409 });
     }
 
     const application = await prisma.loanApplication.create({
@@ -42,7 +45,8 @@ export async function POST(req: NextRequest) {
         repaymentMode,
         requestedAmount: Number(requestedAmount),
         loanPurpose: loanPurpose || null,
-        capturedData: JSON.stringify({ stage1: { repaymentMode, requestedAmount, loanPurpose } }),
+        loanCycle: loanCycle != null ? Number(loanCycle) : null,
+        capturedData: JSON.stringify({ stage1: { repaymentMode, requestedAmount, loanPurpose, loanCycle } }),
       },
     });
 

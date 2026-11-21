@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
+import { prisma } from "@/lib/db";
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.NEXORA_JWT_SECRET || "fallback-secret-change-me"
@@ -26,6 +27,7 @@ export type SessionPayload = {
   workerId?: string;
   identityId?: string;
   name?: string;
+  sessionVersion?: number;
 };
 
 export async function hashPassword(password: string): Promise<string> {
@@ -65,7 +67,29 @@ export async function getSession(): Promise<SessionPayload | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get("nexora_session")?.value;
   if (!token) return null;
-  return verifySessionToken(token);
+  const payload = await verifySessionToken(token);
+  if (!payload) return null;
+
+  // Revoke all earlier sessions when an account's sessionVersion is bumped
+  // (worker replacement / password reset).
+  try {
+    if (payload.role === "COMPANY" && payload.companyId) {
+      const company = await prisma.company.findUnique({
+        where: { id: payload.companyId },
+        select: { sessionVersion: true, status: true },
+      });
+      if (!company || company.status !== "ACTIVE" || company.sessionVersion !== (payload.sessionVersion ?? -1)) return null;
+    } else if ((payload.role === "BM" || payload.role === "CO") && payload.workerId) {
+      const worker = await prisma.worker.findUnique({
+        where: { id: payload.workerId },
+        select: { sessionVersion: true, accountStatus: true },
+      });
+      if (!worker || worker.accountStatus !== "ACTIVE" || worker.sessionVersion !== (payload.sessionVersion ?? -1)) return null;
+    }
+  } catch {
+    return null;
+  }
+  return payload;
 }
 
 export async function setSessionCookie(token: string) {

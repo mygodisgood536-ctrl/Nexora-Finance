@@ -12,9 +12,15 @@ export default async function BranchGroupsPage() {
   const groups = await prisma.group.findMany({
     where: { currentOwnerWorkerId: session.workerId, status: "ACTIVE" },
     orderBy: { dateCreated: "desc" },
-    include: {
-      _count: { select: { memberships: true } },
-    },
+      include: {
+        _count: { select: { memberships: true } },
+        memberships: {
+          where: { membershipStatus: "ACTIVE" },
+          orderBy: { joinedAt: "desc" },
+          take: 6,
+          include: { customer: { select: { id: true, fullName: true } } },
+        },
+      },
   });
 
   return (
@@ -26,6 +32,7 @@ export default async function BranchGroupsPage() {
         address: g.address || "",
         memberCount: g._count.memberships,
         dateCreated: g.dateCreated.toISOString(),
+        members: g.memberships.map((m) => ({ id: m.customer.id, name: m.customer.fullName, role: m.groupRole })),
       }))}
     />
   );

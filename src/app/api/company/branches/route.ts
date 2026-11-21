@@ -38,13 +38,22 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    const company = await prisma.company.findUnique({ where: { id: session.companyId } });
+    const companySlug = company?.slug || "";
+    const origin =
+      process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
+      `${new URL(req.url).protocol}//${new URL(req.url).host}`;
+
     return NextResponse.json({
       success: true,
       branch: {
         id: branch.id,
         name: branch.name,
         slug: branch.slug,
-        url: `${branch.slug}.${(await prisma.company.findUnique({ where: { id: session.companyId } }))?.slug}.nexora.app`,
+        // A URL that actually opens the branch staff sign-in on this deployment.
+        url: `${origin}/branch/login?company=${encodeURIComponent(companySlug)}&branch=${encodeURIComponent(branch.slug)}`,
+        // The canonical host form from the vision; resolves once wildcard DNS is configured.
+        host: `${branch.slug}.${companySlug}.nexora.app`,
       },
     });
   } catch (error) {

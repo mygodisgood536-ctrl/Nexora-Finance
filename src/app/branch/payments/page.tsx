@@ -21,8 +21,15 @@ export default async function BranchPaymentsPage() {
     },
   });
 
+  const customers = await prisma.customer.findMany({
+    where: { currentOwnerWorkerId: session.workerId, customerStatus: { not: "CLOSED" } },
+    select: { id: true, fullName: true, loans: { where: { loanStatus: "ACTIVE" }, select: { id: true } } },
+    orderBy: { fullName: "asc" },
+  });
+
   return (
     <PaymentsPage
+      customers={customers.map((c) => ({ id: c.id, name: c.fullName, loanId: c.loans[0]?.id || null }))}
       receipts={receipts.map((r) => ({
         id: r.id,
         amount: r.verifiedAmount,

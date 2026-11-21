@@ -3,42 +3,28 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { LoanApplicationWizard } from "@/components/branch/LoanApplicationWizard";
 
-export default async function ApplicationPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function ApplicationPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session || (session.role !== "CO" && session.role !== "BM") || !session.workerId) {
     redirect("/branch/login");
   }
-
   const { id } = await params;
 
   const application = await prisma.loanApplication.findFirst({
     where: { id, currentOwnerWorkerId: session.workerId },
     include: {
+      group: { select: { name: true, number: true } },
       customer: {
-        select: {
-          id: true,
-          fullName: true,
-          phone: true,
-          gender: true,
-          maritalStatus: true,
-          address: true,
-          nextOfKinName: true,
-          nextOfKinPhone: true,
-          occupation: true,
-          bvn: true,
-          nin: true,
-          bankAccount: true,
+        include: {
+          loans: { orderBy: { activatedAt: "desc" }, take: 10, select: { id: true, loanStatus: true, totalContractual: true, outstandingBalance: true, activatedAt: true } },
+          memberships: { where: { membershipStatus: "ACTIVE" }, include: { group: { select: { name: true } } } },
         },
       },
     },
   });
-
   if (!application) notFound();
 
+  const c = application.customer;
   return (
     <LoanApplicationWizard
       application={{
@@ -53,8 +39,36 @@ export default async function ApplicationPage({
         repaymentWeekday: application.repaymentWeekday,
         loanPurpose: application.loanPurpose,
         capturedData: application.capturedData,
+        cycle: application.loanCycle,
       }}
-      customer={application.customer}
+      customer={{
+        id: c.id,
+        fullName: c.fullName,
+        phone: c.phone || "",
+        gender: c.gender || "",
+        maritalStatus: c.maritalStatus || "",
+        address: c.address || "",
+        nextOfKinName: c.nextOfKinName || "",
+        nextOfKinRelationship: c.nextOfKinRelationship || "",
+        nextOfKinPhone: c.nextOfKinPhone || "",
+        occupation: c.occupation || "",
+        bvn: c.bvn || "",
+        nin: c.nin || "",
+        bankAccount: c.bankAccount || "",
+        houseAddress: c.houseAddress || "",
+        street: c.street || "",
+        directionToHouse: c.directionToHouse || "",
+        childName: c.childName || "",
+        localKnownAs: c.localKnownAs || "",
+        shopAddress: c.shopAddress || "",
+        averageDailyIncome: c.averageDailyIncome || 0,
+        averageMonthlyIncome: c.averageMonthlyIncome || 0,
+        identificationType: c.identificationType || "",
+        savingsBalance: c.savingsBalance,
+        groups: c.memberships.map((m) => m.group.name),
+        previousLoans: c.loans.map((l) => ({ id: l.id, status: l.loanStatus, total: l.totalContractual, outstanding: l.outstandingBalance, activatedAt: l.activatedAt.toISOString() })),
+      }}
+      groupName={application.group?.name || "—"}
     />
   );
 }

@@ -47,13 +47,14 @@ export async function POST(req: NextRequest) {
           currentOwner: {
             include: { identities: { where: { identityStatus: "ACTIVE" }, take: 1 } },
           },
-          // We need group info - approximate via application if needed
+          application: { include: { group: { select: { name: true } } } },
         },
       });
       if (activeLoan) {
         const coName = activeLoan.currentOwner.identities[0]?.name || "another CO";
+        const groupName = (activeLoan as any).application?.group?.name || "another group";
         return NextResponse.json({
-          error: `Customer has active loan in a group under ${coName}`,
+          error: `Customer has active loan in ${groupName} under ${coName}`,
         }, { status: 409 });
       }
     }

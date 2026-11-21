@@ -19,6 +19,9 @@ export async function POST(req: NextRequest) {
     if (role !== "BM" && role !== "CO") {
       return NextResponse.json({ error: "Role must be BM or CO" }, { status: 400 });
     }
+    if (passport.startsWith("data:") && passport.length > 8 * 1024 * 1024) {
+      return NextResponse.json({ error: "Passport image must be 8 MB or smaller" }, { status: 413 });
+    }
 
     // Verify branch belongs to this company
     const branch = await prisma.branch.findFirst({

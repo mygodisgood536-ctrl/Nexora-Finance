@@ -38,10 +38,23 @@ export async function PATCH(
       return NextResponse.json({ success: true });
     }
 
+    if (action === "reset_password") {
+      const tempPassword = generateTempPassword(10);
+      const passwordHash = await hashPassword(tempPassword);
+      await prisma.worker.update({
+        where: { id },
+        data: { passwordHash, sessionVersion: { increment: 1 } },
+      });
+      return NextResponse.json({ success: true, tempPassword });
+    }
+
     // Replace worker (full flow from vision)
     if (action === "replace") {
       if (!name?.trim() || !phone?.trim() || !passport?.trim()) {
         return NextResponse.json({ error: "Name, phone and passport required for replacement" }, { status: 400 });
+      }
+      if (passport.startsWith("data:") && passport.length > 8 * 1024 * 1024) {
+        return NextResponse.json({ error: "Passport image must be 8 MB or smaller" }, { status: 413 });
       }
 
       const tempPassword = generateTempPassword(10);
@@ -85,6 +98,7 @@ export async function PATCH(
             passwordHash,
             currentWorkerIdentityId: newIdentity.id,
             accountStatus: "ACTIVE",
+            sessionVersion: { increment: 1 },
           },
         });
 

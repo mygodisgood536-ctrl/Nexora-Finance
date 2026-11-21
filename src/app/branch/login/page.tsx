@@ -1,26 +1,30 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Loader2, ArrowRight } from "lucide-react";
 import { AuthShell } from "@/components/layout/AuthShell";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 
-/**
- * Branch worker login (BM or CO).
- * Branding after login comes from company name + role.
- * Pre-login: neutral — no Nexora branding.
- */
-export default function BranchLoginPage() {
+function BranchLoginForm() {
   const router = useRouter();
-  const [companySlug, setCompanySlug] = useState("");
-  const [branchSlug, setBranchSlug] = useState("");
+  const searchParams = useSearchParams();
+  const presetCompany = searchParams.get("company") || "";
+  const presetBranch = searchParams.get("branch") || "";
+
+  const [companySlug, setCompanySlug] = useState(presetCompany);
+  const [branchSlug, setBranchSlug] = useState(presetBranch);
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [tried, setTried] = useState(false);
+
+  useEffect(() => {
+    if (presetCompany) setCompanySlug(presetCompany);
+    if (presetBranch) setBranchSlug(presetBranch);
+  }, [presetCompany, presetBranch]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -53,11 +57,12 @@ export default function BranchLoginPage() {
   }
 
   const displayBrand = companySlug.trim() || "Branch";
+  const branchLabel = branchSlug.trim() ? `${branchSlug}.${companySlug || "company"}` : "staff access";
 
   return (
     <AuthShell
       brand={displayBrand}
-      subtitle="Staff access"
+      subtitle={branchLabel}
       formTitle="Sign in"
       skipSplash={tried}
     >
@@ -71,6 +76,7 @@ export default function BranchLoginPage() {
               className="input"
               placeholder="company"
               required
+              readOnly={!!presetCompany}
             />
           </div>
           <div>
@@ -81,6 +87,7 @@ export default function BranchLoginPage() {
               className="input"
               placeholder="branch"
               required
+              readOnly={!!presetBranch}
             />
           </div>
         </div>
@@ -124,5 +131,13 @@ export default function BranchLoginPage() {
         </button>
       </form>
     </AuthShell>
+  );
+}
+
+export default function BranchLoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[100dvh] bg-white flex items-center justify-center text-slate-500">Loading...</div>}>
+      <BranchLoginForm />
+    </Suspense>
   );
 }
